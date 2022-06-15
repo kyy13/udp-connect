@@ -32,7 +32,6 @@ public:
         UdcAddressFamily& addressFamily,
         UdcAddressIPv4& addressIPv4,
         UdcAddressIPv6& addressIPv6,
-        uint16_t& port,
         Buffer& message,
         size_t& messageSize);
 

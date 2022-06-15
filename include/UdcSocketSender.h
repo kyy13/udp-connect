@@ -21,8 +21,8 @@ public:
     // Open and configure a socket, then establish a destination ip/port.
     // Connect can be called multiple times without calling disconnect()
     // in order to change the ip/port.
-    bool connect(uint16_t localPort, UdcAddressIPv4 remoteIp, uint16_t remotePort);
-    bool connect(uint16_t localPort, UdcAddressIPv6 remoteIp, uint16_t remotePort);
+    bool connect(UdcAddressIPv4 remoteIp, uint16_t remotePort);
+    bool connect(UdcAddressIPv6 remoteIp, uint16_t remotePort);
 
     // Send a message to connected port
     bool send(const uint8_t* buffer, size_t size) const;

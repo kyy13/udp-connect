@@ -23,7 +23,7 @@ int main()
 
     // Connect sender
 
-    if (!uss.connect(7777, loopBack, 1234))
+    if (!uss.connect(loopBack, 1234))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -37,7 +37,7 @@ int main()
 
     // Connect to a different port (without calling disconnect)
 
-    if (!uss.connect(7777, loopBack, 4321))
+    if (!uss.connect(loopBack, 4321))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -53,7 +53,7 @@ int main()
 
     uss.disconnect();
 
-    if (!uss.connect(7777, loopBack, 7777))
+    if (!uss.connect(loopBack, 7777))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -80,7 +80,6 @@ int main()
     UdcAddressIPv6 ipv6;
     UdcSocketReceiver::Buffer message;
 
-    uint16_t port;
     size_t messageSize;
 
     bool received = false;
@@ -93,7 +92,7 @@ int main()
             return -1;
         }
 
-        if (usr.receive(family, ipv4, ipv6, port, message, messageSize))
+        if (usr.receive(family, ipv4, ipv6, message, messageSize))
         {
             if (family != UDC_IPV4)
             {
@@ -104,12 +103,6 @@ int main()
             if (std::memcmp(loopBack.octets, ipv4.octets, sizeof(ipv4.octets)) != 0)
             {
                 std::cout << "packet ip received incorrectly.\n";
-                return -1;
-            }
-
-            if (port != 7777)
-            {
-                std::cout << "port received is incorrect: " << port << '\n';
                 return -1;
             }
 

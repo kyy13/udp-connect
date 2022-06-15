@@ -81,12 +81,6 @@ bool UdcSocketReceiver::connect(uint16_t localPort)
         return false;
     }
 
-    // Set socket reuse address
-    if (!setSocketReuseAddress(m_socket))
-    {
-        return false;
-    }
-
     // Bind to ip/port
     if (::bind(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == SOCKET_ERROR)
     {
@@ -101,7 +95,6 @@ bool UdcSocketReceiver::receive(
     UdcAddressFamily& addressFamily,
     UdcAddressIPv4& addressIPv4,
     UdcAddressIPv6& addressIPv6,
-    uint16_t& port,
     Buffer& message,
     size_t& messageSize)
 {
@@ -166,14 +159,12 @@ bool UdcSocketReceiver::receive(
         {
             // IPv6
             auto* address = reinterpret_cast<const sockaddr_in6*>(&remoteAddress);
-            port = ntohs(address->sin6_port);
             convertToIPv6(address->sin6_addr, addressIPv6);
         }
         else
         {
             // IPv4
             auto* address = reinterpret_cast<const sockaddr_in*>(&remoteAddress);
-            port = ntohs(address->sin_port);
             convertToIPv4(address->sin_addr, addressIPv4);
         }
 
