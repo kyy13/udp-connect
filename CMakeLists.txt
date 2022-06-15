@@ -12,6 +12,7 @@ add_library(
     SHARED
     src/UdcCommon.cpp
     src/UdcSocketSender.cpp
+    src/UdcSocketReceiver.cpp
 )
 
 # includes

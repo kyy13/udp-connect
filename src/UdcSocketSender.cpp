@@ -5,7 +5,7 @@
 #include "UdcCommon.h"
 
 #include <cstring>
-#include <Ws2tcpip.h>
+#include <ws2tcpip.h>
 
 UdcSocketSender::UdcSocketSender()
     : m_wsaStarted(false)
@@ -15,6 +15,14 @@ UdcSocketSender::UdcSocketSender()
 
 UdcSocketSender::~UdcSocketSender()
 {
+    // Close previous socket if necessary
+    if (m_socket != INVALID_SOCKET)
+    {
+        closesocket(m_socket);
+        m_socket = INVALID_SOCKET;
+    }
+
+    // Cleanup WSA lib
     if (m_wsaStarted)
     {
         WSACleanup();
@@ -53,8 +61,7 @@ bool UdcSocketSender::connect(const char* ip, u_short port)
         return false;
     }
 
-    // Connect to ip/port
-
+    // Establish socket info
     in_addr ip_addr {};
     ip_addr.s_addr = inet_addr(ip);
 
@@ -66,11 +73,13 @@ bool UdcSocketSender::connect(const char* ip, u_short port)
             .sin_zero = {0,0,0,0,0,0,0,0},
         };
 
+    // Set socket non-blocking
     if (!setSocketNonBlocking(m_socket))
     {
         return false;
     }
 
+    // Connect to ip/port
     if (::connect(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == SOCKET_ERROR)
     {
         return false;
@@ -100,4 +109,9 @@ void UdcSocketSender::disconnect()
     }
 
     m_connected = false;
+}
+
+bool UdcSocketSender::isConnected() const
+{
+    return m_connected;
 }
