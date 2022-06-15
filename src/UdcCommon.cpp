@@ -4,7 +4,7 @@
 #include "UdcCommon.h"
 
 #include <cassert>
-#include <ws2tcpip.h>
+#include <cstring>
 
 bool setSocketNonBlocking(SOCKET socket)
 {
@@ -12,34 +12,16 @@ bool setSocketNonBlocking(SOCKET socket)
     return ioctlsocket(socket, FIONBIO, &mode) != SOCKET_ERROR;
 }
 
-void convertToIp(const sockaddr_in* sa, std::string& ip)
+in_addr convertIPv4(IpAddress& address)
 {
-    if (sa->sin_family == AF_INET)
-    {
-        char buffer[INET_ADDRSTRLEN];
+    in_addr result;
+    memcpy(&result.S_un.S_un_b.s_b1, address.ip_v4, sizeof(address.ip_v4));
+    return result;
+}
 
-        inet_ntop(
-            AF_INET,
-            &sa->sin_addr,
-            buffer,
-            sizeof(buffer));
-
-        size_t size = strlen(buffer);
-        assert(size <= INET_ADDRSTRLEN);
-        ip.assign(buffer, buffer + size);
-    }
-    else
-    {
-        char buffer[INET6_ADDRSTRLEN];
-
-        inet_ntop(
-            AF_INET6,
-            &sa->sin_addr,
-            buffer,
-            sizeof(buffer));
-
-        size_t size = strlen(buffer);
-        assert(size <= INET6_ADDRSTRLEN);
-        ip.assign(buffer, buffer + size);
-    }
+in6_addr convertIPv6(IpAddress& address)
+{
+    in6_addr result;
+    memcpy(result.u.Byte, address.ip_v6, sizeof(address.ip_v6));
+    return result;
 }

@@ -8,6 +8,25 @@
 
 extern "C"
 {
+    // IP version
+    enum IpVersion : uint8_t
+    {
+        IP_V4,
+        IP_V6,
+    };
+
+    // IP address union for IPv4 and IPv6
+    // IPv4 readable format by byte number is
+    //  [0].[1].[2].[3]
+    // IPv6 readable format by byte number is
+    //  [0][1]:[2][3]:[4][5]:[6][7]:[8][9]:[10][11]:[12][13]:[14][15]
+    //  NOTE: Byte pairs (e.g. [0][1]) in Big Endian byte order
+    union IpAddress
+    {
+        uint8_t ip_v4[4];
+        uint8_t ip_v6[16];
+    };
+
     // A local server
     struct UdcServer;
 
@@ -84,6 +103,16 @@ extern "C"
 
     // Get the ping (in ms) of the client
     uint32_t udcGetClientPing(UdcClient* client);
+
+    // Convert an IP string to an IpVersion and IpAddress
+    // returns true on success
+    bool udcConvertStringToIp(const char* str, IpVersion* version, IpAddress* address);
+
+    // Convert an IP version and address to an IP string
+    // returns the length of the resulting string
+    // If the value of str is nullptr, then it will still return the resulting length,
+    // but it will not write to str
+    uint32_t udcConvertIpToString(IpVersion version, IpAddress address, char* str);
 }
 
 #endif

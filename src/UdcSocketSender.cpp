@@ -29,7 +29,7 @@ UdcSocketSender::~UdcSocketSender()
     }
 }
 
-bool UdcSocketSender::connect(const char* ip, u_short localPort, u_short remotePort)
+bool UdcSocketSender::connect(IpVersion version, IpAddress address, uint16_t localPort, uint16_t remotePort)
 {
     m_connected = false;
 
@@ -61,42 +61,82 @@ bool UdcSocketSender::connect(const char* ip, u_short localPort, u_short remoteP
         return false;
     }
 
-    // Establish socket info
-    in_addr ip_addr {};
-    ip_addr.s_addr = INADDR_ANY;
-
-    sockaddr_in localAddress =
-        {
-            .sin_family = AF_INET,
-            .sin_port = htons(localPort),
-            .sin_addr = ip_addr,
-            .sin_zero = {0,0,0,0,0,0,0,0},
-        };
-
-    ip_addr.s_addr = inet_addr(ip);
-
-    sockaddr_in remoteAddress =
-        {
-            .sin_family = AF_INET,
-            .sin_port = htons(remotePort),
-            .sin_addr = ip_addr,
-            .sin_zero = {0,0,0,0,0,0,0,0},
-        };
-
     // Set socket non-blocking
     if (!setSocketNonBlocking(m_socket))
     {
         return false;
     }
 
+    // Establish socket info
+    union
+    {
+        sockaddr_in sa4;
+        sockaddr_in6 sa6;
+    } localAddress, remoteAddress;
+
+    sockaddr* pLocalAddress;
+    sockaddr* pRemoteAddress;
+    int nameLen;
+
+    if (version == IP_V6) // IPv6
+    {
+        in6_addr ip_addr {};
+
+        ip_addr = IN6ADDR_ANY_INIT;
+        localAddress.sa6 =
+            {
+                .sin6_family = AF_INET6,
+                .sin6_port = htons(localPort),
+                .sin6_addr = ip_addr,
+            };
+        pLocalAddress = reinterpret_cast<sockaddr*>(&localAddress.sa6);
+
+        ip_addr = convertIPv6(address);
+        remoteAddress.sa6 =
+            {
+                .sin6_family = AF_INET6,
+                .sin6_port = htons(remotePort),
+                .sin6_addr = ip_addr,
+            };
+        pRemoteAddress = reinterpret_cast<sockaddr*>(&remoteAddress.sa6);
+
+        nameLen = sizeof(localAddress.sa6);
+    }
+    else // IPv4
+    {
+        in_addr ip_addr {};
+
+        ip_addr.s_addr = INADDR_ANY;
+        localAddress.sa4 =
+            {
+                .sin_family = AF_INET,
+                .sin_port = htons(localPort),
+                .sin_addr = ip_addr,
+                .sin_zero = {0,0,0,0,0,0,0,0},
+            };
+        pLocalAddress = reinterpret_cast<sockaddr*>(&localAddress.sa4);
+
+        ip_addr = convertIPv4(address);
+        remoteAddress.sa4 =
+            {
+                .sin_family = AF_INET,
+                .sin_port = htons(remotePort),
+                .sin_addr = ip_addr,
+                .sin_zero = {0,0,0,0,0,0,0,0},
+            };
+        pRemoteAddress = reinterpret_cast<sockaddr*>(&remoteAddress.sa4);
+
+        nameLen = sizeof(localAddress.sa4);
+    }
+
     // Bind to sending port
-    if (::bind(m_socket, reinterpret_cast<sockaddr*>(&localAddress), sizeof(localAddress)) == SOCKET_ERROR)
+    if (::bind(m_socket, pLocalAddress, nameLen) == SOCKET_ERROR)
     {
         return false;
     }
 
     // Connect to remote port
-    if (::connect(m_socket, reinterpret_cast<sockaddr*>(&remoteAddress), sizeof(remoteAddress)) == SOCKET_ERROR)
+    if (::connect(m_socket, pRemoteAddress, nameLen) == SOCKET_ERROR)
     {
         return false;
     }
@@ -105,14 +145,14 @@ bool UdcSocketSender::connect(const char* ip, u_short localPort, u_short remoteP
     return true;
 }
 
-bool UdcSocketSender::send(const char* msg) const
+bool UdcSocketSender::send(const uint8_t* buffer, size_t size) const
 {
     if (!m_connected)
     {
         return false;
     }
 
-    return ::send(m_socket, msg, static_cast<int>(strlen(msg)), 0) != SOCKET_ERROR;
+    return ::send(m_socket, reinterpret_cast<const char*>(buffer), static_cast<int>(size), 0) != SOCKET_ERROR;
 }
 
 void UdcSocketSender::disconnect()

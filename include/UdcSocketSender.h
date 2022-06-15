@@ -4,7 +4,9 @@
 #ifndef UDC_SOCKET_SENDER_H
 #define UDC_SOCKET_SENDER_H
 
+#include "udp_connect.h"
 #include <winsock2.h>
+#include <cstdint>
 
 // UdcSocketSender
 // Manages sending UDP packets to an ip/port
@@ -20,10 +22,10 @@ public:
     // destination ip/port.
     // Connect can be called multiple times without calling disconnect()
     // in order to change the ip/port.
-    bool connect(const char* ip, u_short localPort, u_short remotePort);
+    bool connect(IpVersion version, IpAddress address, uint16_t localPort, uint16_t remotePort);
 
     // Send a message to connected port
-    bool send(const char* msg) const;
+    bool send(const uint8_t* buffer, size_t size) const;
 
     // Manually closes the socket
     void disconnect();

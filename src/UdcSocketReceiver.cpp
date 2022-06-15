@@ -6,7 +6,7 @@
 
 #include <cassert>
 
-UdcSocketReceiver::UdcSocketReceiver(int maxMessageSize)
+UdcSocketReceiver::UdcSocketReceiver(size_t maxMessageSize)
     : m_wsaStarted(false)
     , m_connected(false)
     , m_socket(INVALID_SOCKET)
@@ -30,7 +30,7 @@ UdcSocketReceiver::~UdcSocketReceiver()
     }
 }
 
-bool UdcSocketReceiver::connect(u_short port)
+bool UdcSocketReceiver::connect(uint16_t port)
 {
     m_connected = false;
 
@@ -90,7 +90,7 @@ bool UdcSocketReceiver::connect(u_short port)
     return true;
 }
 
-bool UdcSocketReceiver::receive(std::string& ip, u_short& port, std::vector<uint8_t>& msg)
+bool UdcSocketReceiver::receive(IpVersion& version, IpAddress& address, uint16_t& port, uint8_t* msg, size_t& size)
 {
     if (!m_connected)
     {

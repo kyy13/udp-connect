@@ -4,6 +4,8 @@
 #ifndef UDC_SOCKET_RECEIVER_H
 #define UDC_SOCKET_RECEIVER_H
 
+#include "udp_connect.h"
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -14,16 +16,16 @@
 class UdcSocketReceiver
 {
 public:
-    UdcSocketReceiver(int maxMessageSize);
+    UdcSocketReceiver(size_t maxMessageSize);
     UdcSocketReceiver(const UdcSocketReceiver&) = delete;
     UdcSocketReceiver& operator=(const UdcSocketReceiver&) = delete;
     ~UdcSocketReceiver();
 
-    bool connect(u_short port);
+    bool connect(uint16_t port);
 
     // Receive messages from the connected port
     // ignoring messages that are larger than maxMessageSize
-    bool receive(std::string& ip, u_short& port, std::vector<uint8_t>& msg);
+    bool receive(IpVersion& version, IpAddress& address, uint16_t& port, uint8_t* msg, size_t& size);
 
     // Manually closes the socket
     void disconnect();

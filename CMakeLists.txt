@@ -10,6 +10,7 @@ option(BUILD_TESTS "build tests?" ON)
 add_library(
     ${PROJECT_NAME}
     SHARED
+    src/udp_connect.cpp
     src/UdcCommon.cpp
     src/UdcSocketSender.cpp
     src/UdcSocketReceiver.cpp
