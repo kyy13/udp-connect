@@ -11,9 +11,12 @@
 #include <ws2tcpip.h>
 
 bool setSocketNonBlocking(SOCKET socket);
+bool setSocketReuseAddress(SOCKET socket);
 
-in_addr convertIPv4(IpAddress& address);
+in_addr convertFromIPv4(const UdcAddressIPv4& address);
+void convertToIPv4(const in_addr& src, UdcAddressIPv4& dst);
 
-in6_addr convertIPv6(IpAddress& address);
+in6_addr convertFromIPv6(const UdcAddressIPv6& address);
+void convertToIPv6(const in6_addr& src, UdcAddressIPv6& dst);
 
 #endif

@@ -6,71 +6,63 @@
 #include <cstring>
 #include <ws2tcpip.h>
 
-bool udcConvertStringToIp(const char* str, IpVersion* version, IpAddress* address)
+bool udcStringToIPv4(const char* ipString, UdcAddressIPv4* ipAddress)
 {
-    union
-    {
-        in_addr ina4;
-        in6_addr ina6;
-    };
+    in_addr address {};
 
-    // Try to convert to IPv6
-    if (inet_pton(AF_INET6, str, &ina6) == 1)
+    if (inet_pton(AF_INET, ipString, &address) == 1)
     {
-        *version = IP_V6;
-        memcpy(address->ip_v6, &ina6.u.Byte, sizeof(address->ip_v6));
+        memcpy(ipAddress->octets, &address.S_un.S_un_b.s_b1, sizeof(ipAddress->octets));
         return true;
     }
 
-    // Try to convert to IPv4
-    if (inet_pton(AF_INET, str, &ina4) == 1)
-    {
-        *version = IP_V4;
-        memcpy(address->ip_v4, &ina4.S_un.S_un_b.s_b1, sizeof(address->ip_v4));
-        return true;
-    }
-
-    // Failed to convert
     return false;
 }
 
-uint32_t udcConvertIpToString(IpVersion version, IpAddress address, char* str)
+bool udcStringToIPv6(const char* ipString, UdcAddressIPv6* ipAddress)
 {
-    union
+    in6_addr address {};
+
+    if (inet_pton(AF_INET6, ipString, &address) == 1)
     {
-        char buffer4[INET_ADDRSTRLEN];
-        char buffer6[INET6_ADDRSTRLEN];
-    };
-
-    union
-    {
-        in_addr ina4;
-        in6_addr ina6;
-    };
-
-    // IPv4
-    if (version == IP_V4)
-    {
-        memcpy(&ina4.S_un.S_un_b.s_b1, address.ip_v4, sizeof(address.ip_v4));
-        inet_ntop(AF_INET,&ina4,buffer4, sizeof(buffer4));
-
-        size_t size = strlen(buffer4);
-        if (str != nullptr)
-        {
-            memcpy(str, buffer4, size);
-        }
-
-        return size;
+        memcpy(ipAddress->segments, &address.u.Byte, sizeof(ipAddress->segments));
+        return true;
     }
 
-    // IPv6
-    memcpy(&ina6.u.Byte, address.ip_v6, sizeof(address.ip_v6));
-    inet_ntop(AF_INET6,&ina6,buffer6, sizeof(buffer6));
+    return false;
+}
 
-    size_t size = strlen(buffer6);
-    if (str != nullptr)
+uint32_t udcIPv4ToString(const UdcAddressIPv4* ipAddress, char* ipString)
+{
+    char buffer[INET_ADDRSTRLEN];
+    in_addr address {};
+    size_t size;
+
+    memcpy(&address.S_un.S_un_b.s_b1, ipAddress->octets, sizeof(ipAddress->octets));
+    inet_ntop(AF_INET,&address,buffer, sizeof(buffer));
+
+    size = strlen(buffer);
+    if (ipString != nullptr)
     {
-        memcpy(str, buffer6, size);
+        memcpy(ipString, buffer, size);
+    }
+
+    return size;
+}
+
+uint32_t udcIPv6ToString(const UdcAddressIPv6* ipAddress, char* ipString)
+{
+    char buffer[INET6_ADDRSTRLEN];
+    in6_addr address {};
+    size_t size;
+
+    memcpy(&address.u.Byte, ipAddress->segments, sizeof(ipAddress->segments));
+    inet_ntop(AF_INET6,&address,buffer, sizeof(buffer));
+
+    size = strlen(buffer);
+    if (ipString != nullptr)
+    {
+        memcpy(ipString, buffer, size);
     }
 
     return size;

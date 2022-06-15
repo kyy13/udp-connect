@@ -9,20 +9,27 @@
 
 int main()
 {
-    const char UDP_MESSAGE[] = "Hello Socket!";
+    const uint8_t udpMessage[] = {'H', 'E', 'L', 'L', 'O', '!'};
+
+    UdcAddressIPv4 loopBack {};
+    if (!udcStringToIPv4("127.0.0.1", &loopBack))
+    {
+        std::cout << "failed to convert ip string\n";
+        return -1;
+    }
 
     UdcSocketReceiver usr(100);
     UdcSocketSender uss;
 
     // Connect sender
 
-    if (!uss.connect("127.0.0.1", 7777, 1234))
+    if (!uss.connect(7777, loopBack, 1234))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
     }
 
-    if (!uss.send(UDP_MESSAGE))
+    if (!uss.send(udpMessage, sizeof(udpMessage)))
     {
         std::cout << "failed to send\n";
         return -1;
@@ -30,13 +37,13 @@ int main()
 
     // Connect to a different port (without calling disconnect)
 
-    if (!uss.connect("127.0.0.1", 7777, 4321))
+    if (!uss.connect(7777, loopBack, 4321))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
     }
 
-    if (!uss.send(UDP_MESSAGE))
+    if (!uss.send(udpMessage, sizeof(udpMessage)))
     {
         std::cout << "failed to send\n";
         return -1;
@@ -46,13 +53,13 @@ int main()
 
     uss.disconnect();
 
-    if (!uss.connect("127.0.0.1", 7777, 7777))
+    if (!uss.connect(7777, loopBack, 7777))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
     }
 
-    if (!uss.send(UDP_MESSAGE))
+    if (!uss.send(udpMessage, sizeof(udpMessage)))
     {
         std::cout << "failed to send\n";
         return -1;
@@ -68,22 +75,33 @@ int main()
 
     // Test sending and receiving many
 
-    std::string ip;
-    u_short port;
-    std::vector<uint8_t> msg;
+    UdcAddressFamily family;
+    UdcAddressIPv4 ipv4;
+    UdcAddressIPv6 ipv6;
+    UdcSocketReceiver::Buffer message;
+
+    uint16_t port;
+    size_t messageSize;
+
     bool received = false;
 
     for (size_t i = 0; i != 1000; ++i)
     {
-        if (!uss.send(UDP_MESSAGE))
+        if (!uss.send(udpMessage, sizeof(udpMessage)))
         {
             std::cout << "failed to send.\n";
             return -1;
         }
 
-        if (usr.receive(ip, port, msg))
+        if (usr.receive(family, ipv4, ipv6, port, message, messageSize))
         {
-            if (ip != "127.0.0.1")
+            if (family != UDC_IPV4)
+            {
+                std::cout << "ip family received incorrectly.\n";
+                return -1;
+            }
+
+            if (std::memcmp(loopBack.octets, ipv4.octets, sizeof(ipv4.octets)) != 0)
             {
                 std::cout << "packet ip received incorrectly.\n";
                 return -1;
@@ -95,7 +113,7 @@ int main()
                 return -1;
             }
 
-            if (std::memcmp(msg.data(), UDP_MESSAGE, strlen(UDP_MESSAGE)) != 0)
+            if (std::memcmp(message, udpMessage, sizeof(udpMessage)) != 0)
             {
                 std::cout << "packet received incorrectly.\n";
                 return -1;

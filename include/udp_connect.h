@@ -8,30 +8,39 @@
 
 extern "C"
 {
-    // IP version
-    enum IpVersion : uint8_t
-    {
-        IP_V4,
-        IP_V6,
-    };
-
-    // IP address union for IPv4 and IPv6
-    // IPv4 readable format by byte number is
-    //  [0].[1].[2].[3]
-    // IPv6 readable format by byte number is
-    //  [0][1]:[2][3]:[4][5]:[6][7]:[8][9]:[10][11]:[12][13]:[14][15]
-    //  NOTE: Byte pairs (e.g. [0][1]) in Big Endian byte order
-    union IpAddress
-    {
-        uint8_t ip_v4[4];
-        uint8_t ip_v6[16];
-    };
-
     // A local server
     struct UdcServer;
 
     // A connection to a remove client
     struct UdcClient;
+
+    // IP version
+    enum UdcAddressFamily : uint8_t
+    {
+        UDC_IPV4,
+        UDC_IPV6,
+    };
+
+    // A generic address buffer that can be converted to an IPv4 or IPv6 address
+//    struct UdcAddress
+//    {
+//        uint8_t bytes[16];
+//    };
+
+    // IPv4 Address
+    // Stored as 4 octets in the format [0].[1].[2].[3]
+    struct UdcAddressIPv4
+    {
+        uint8_t octets[4];
+    };
+
+    // IPv6 Address
+    // Stored as 8 segments in the format [0]:[1]:[2]:[3]:[4]:[5]:[6]:[7]
+    // where each segment is in network byte-order (Big Endian)
+    struct UdcAddressIPv6
+    {
+        uint16_t segments[8];
+    };
 
     enum UdcStatus : uint8_t
     {
@@ -104,15 +113,18 @@ extern "C"
     // Get the ping (in ms) of the client
     uint32_t udcGetClientPing(UdcClient* client);
 
-    // Convert an IP string to an IpVersion and IpAddress
+    // Convert an IP string to an IP
     // returns true on success
-    bool udcConvertStringToIp(const char* str, IpVersion* version, IpAddress* address);
+    bool udcStringToIPv4(const char* ipString, UdcAddressIPv4* ipAddress);
+    bool udcStringToIPv6(const char* ipString, UdcAddressIPv6* ipAddress);
 
-    // Convert an IP version and address to an IP string
-    // returns the length of the resulting string
-    // If the value of str is nullptr, then it will still return the resulting length,
+    // Convert an IP address to an IP string
+    // Returns the length of the resulting IP string
+    // If the method is called with ipString = nullptr,
+    // then it will still return the resulting length,
     // but it will not write to str
-    uint32_t udcConvertIpToString(IpVersion version, IpAddress address, char* str);
+    uint32_t udcIPv4ToString(const UdcAddressIPv4* ipAddress, char* ipString);
+    uint32_t udcIPv6ToString(const UdcAddressIPv6* ipAddress, char* ipString);
 }
 
 #endif

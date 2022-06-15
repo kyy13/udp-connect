@@ -12,16 +12,32 @@ bool setSocketNonBlocking(SOCKET socket)
     return ioctlsocket(socket, FIONBIO, &mode) != SOCKET_ERROR;
 }
 
-in_addr convertIPv4(IpAddress& address)
+bool setSocketReuseAddress(SOCKET socket)
 {
-    in_addr result;
-    memcpy(&result.S_un.S_un_b.s_b1, address.ip_v4, sizeof(address.ip_v4));
+    int opt = 1;
+    return setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&opt), sizeof(opt)) != SOCKET_ERROR;
+}
+
+in_addr convertFromIPv4(const UdcAddressIPv4& address)
+{
+    in_addr result {};
+    memcpy(&result.S_un.S_un_b.s_b1, address.octets, sizeof(address.octets));
     return result;
 }
 
-in6_addr convertIPv6(IpAddress& address)
+void convertToIPv4(const in_addr& src, UdcAddressIPv4& dst)
 {
-    in6_addr result;
-    memcpy(result.u.Byte, address.ip_v6, sizeof(address.ip_v6));
+    memcpy(dst.octets, &src.S_un.S_un_b.s_b1, sizeof(dst.octets));
+}
+
+in6_addr convertFromIPv6(const UdcAddressIPv6& address)
+{
+    in6_addr result {};
+    memcpy(result.u.Byte, address.segments, sizeof(address.segments));
     return result;
+}
+
+void convertToIPv6(const in6_addr& src, UdcAddressIPv6& dst)
+{
+    memcpy(dst.segments, src.u.Byte, sizeof(dst.segments));
 }

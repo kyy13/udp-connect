@@ -16,16 +16,25 @@
 class UdcSocketReceiver
 {
 public:
+    using Buffer = const uint8_t*;
+
     UdcSocketReceiver(size_t maxMessageSize);
     UdcSocketReceiver(const UdcSocketReceiver&) = delete;
     UdcSocketReceiver& operator=(const UdcSocketReceiver&) = delete;
     ~UdcSocketReceiver();
 
-    bool connect(uint16_t port);
+    bool connect(uint16_t localPort);
 
-    // Receive messages from the connected port
-    // ignoring messages that are larger than maxMessageSize
-    bool receive(IpVersion& version, IpAddress& address, uint16_t& port, uint8_t* msg, size_t& size);
+    // Receive messages from the connected port and return true
+    // returns false when there are no messages to receive
+    // ignores messages that are larger than maxMessageSize
+    bool receive(
+        UdcAddressFamily& addressFamily,
+        UdcAddressIPv4& addressIPv4,
+        UdcAddressIPv6& addressIPv6,
+        uint16_t& port,
+        Buffer& message,
+        size_t& messageSize);
 
     // Manually closes the socket
     void disconnect();

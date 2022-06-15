@@ -18,11 +18,11 @@ public:
     UdcSocketSender& operator=(const UdcSocketSender&) = delete;
     ~UdcSocketSender();
 
-    // Open and configure a socket, then establish a
-    // destination ip/port.
+    // Open and configure a socket, then establish a destination ip/port.
     // Connect can be called multiple times without calling disconnect()
     // in order to change the ip/port.
-    bool connect(IpVersion version, IpAddress address, uint16_t localPort, uint16_t remotePort);
+    bool connect(uint16_t localPort, UdcAddressIPv4 remoteIp, uint16_t remotePort);
+    bool connect(uint16_t localPort, UdcAddressIPv6 remoteIp, uint16_t remotePort);
 
     // Send a message to connected port
     bool send(const uint8_t* buffer, size_t size) const;

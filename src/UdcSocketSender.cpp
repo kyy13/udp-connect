@@ -29,7 +29,7 @@ UdcSocketSender::~UdcSocketSender()
     }
 }
 
-bool UdcSocketSender::connect(IpVersion version, IpAddress address, uint16_t localPort, uint16_t remotePort)
+bool UdcSocketSender::connect(uint16_t localPort, UdcAddressIPv4 remoteIp, uint16_t remotePort)
 {
     m_connected = false;
 
@@ -67,76 +67,120 @@ bool UdcSocketSender::connect(IpVersion version, IpAddress address, uint16_t loc
         return false;
     }
 
-    // Establish socket info
-    union
+    // Set socket reuse address
+    if (!setSocketReuseAddress(m_socket))
     {
-        sockaddr_in sa4;
-        sockaddr_in6 sa6;
-    } localAddress, remoteAddress;
-
-    sockaddr* pLocalAddress;
-    sockaddr* pRemoteAddress;
-    int nameLen;
-
-    if (version == IP_V6) // IPv6
-    {
-        in6_addr ip_addr {};
-
-        ip_addr = IN6ADDR_ANY_INIT;
-        localAddress.sa6 =
-            {
-                .sin6_family = AF_INET6,
-                .sin6_port = htons(localPort),
-                .sin6_addr = ip_addr,
-            };
-        pLocalAddress = reinterpret_cast<sockaddr*>(&localAddress.sa6);
-
-        ip_addr = convertIPv6(address);
-        remoteAddress.sa6 =
-            {
-                .sin6_family = AF_INET6,
-                .sin6_port = htons(remotePort),
-                .sin6_addr = ip_addr,
-            };
-        pRemoteAddress = reinterpret_cast<sockaddr*>(&remoteAddress.sa6);
-
-        nameLen = sizeof(localAddress.sa6);
+        return false;
     }
-    else // IPv4
-    {
-        in_addr ip_addr {};
 
-        ip_addr.s_addr = INADDR_ANY;
-        localAddress.sa4 =
-            {
-                .sin_family = AF_INET,
-                .sin_port = htons(localPort),
-                .sin_addr = ip_addr,
-                .sin_zero = {0,0,0,0,0,0,0,0},
-            };
-        pLocalAddress = reinterpret_cast<sockaddr*>(&localAddress.sa4);
+    in_addr ip_addr {};
 
-        ip_addr = convertIPv4(address);
-        remoteAddress.sa4 =
-            {
-                .sin_family = AF_INET,
-                .sin_port = htons(remotePort),
-                .sin_addr = ip_addr,
-                .sin_zero = {0,0,0,0,0,0,0,0},
-            };
-        pRemoteAddress = reinterpret_cast<sockaddr*>(&remoteAddress.sa4);
+    // Configure local address
+    ip_addr.s_addr = INADDR_ANY;
+    sockaddr_in localAddress =
+        {
+            .sin_family = AF_INET,
+            .sin_port = htons(localPort),
+            .sin_addr = ip_addr,
+            .sin_zero = {0,0,0,0,0,0,0,0},
+        };
 
-        nameLen = sizeof(localAddress.sa4);
-    }
+    // Configure remote address
+    ip_addr = convertFromIPv4(remoteIp);
+    sockaddr_in remoteAddress =
+        {
+            .sin_family = AF_INET,
+            .sin_port = htons(remotePort),
+            .sin_addr = ip_addr,
+            .sin_zero = {0,0,0,0,0,0,0,0},
+        };
 
     // Bind to sending port
-    if (::bind(m_socket, pLocalAddress, nameLen) == SOCKET_ERROR)
+    if (::bind(m_socket, reinterpret_cast<sockaddr*>(&localAddress), sizeof(sockaddr_in)) == SOCKET_ERROR)
     {
         return false;
     }
 
     // Connect to remote port
-    if (::connect(m_socket, pRemoteAddress, nameLen) == SOCKET_ERROR)
+    if (::connect(m_socket, reinterpret_cast<sockaddr*>(&remoteAddress), sizeof(sockaddr_in)) == SOCKET_ERROR)
+    {
+        return false;
+    }
+
+    m_connected = true;
+    return true;
+}
+
+bool UdcSocketSender::connect(uint16_t localPort, UdcAddressIPv6 remoteIp, uint16_t remotePort)
+{
+    m_connected = false;
+
+    // Start WSA if necessary
+    if (!m_wsaStarted)
+    {
+        WSADATA wsaData;
+
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR)
+        {
+            return false;
+        }
+
+        m_wsaStarted = true;
+    }
+
+    // Close previous socket if necessary
+    if (m_socket != INVALID_SOCKET)
+    {
+        closesocket(m_socket);
+        m_socket = INVALID_SOCKET;
+    }
+
+    // Create a socket
+    m_socket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+
+    if (m_socket == INVALID_SOCKET)
+    {
+        return false;
+    }
+
+    // Set socket non-blocking
+    if (!setSocketNonBlocking(m_socket))
+    {
+        return false;
+    }
+
+    // Set socket reuse address
+    if (!setSocketReuseAddress(m_socket))
+    {
+        return false;
+    }
+
+    // Configure local address
+    in6_addr ip_addr = IN6ADDR_ANY_INIT;
+    sockaddr_in6 localAddress =
+        {
+            .sin6_family = AF_INET6,
+            .sin6_port = htons(localPort),
+            .sin6_addr = ip_addr,
+        };
+
+    // Configure remote address
+    ip_addr = convertFromIPv6(remoteIp);
+    sockaddr_in6 remoteAddress =
+        {
+            .sin6_family = AF_INET6,
+            .sin6_port = htons(remotePort),
+            .sin6_addr = ip_addr,
+        };
+
+    // Bind to sending port
+    if (::bind(m_socket, reinterpret_cast<sockaddr*>(&localAddress), sizeof(sockaddr_in6)) == SOCKET_ERROR)
+    {
+        return false;
+    }
+
+    // Connect to remote port
+    if (::connect(m_socket, reinterpret_cast<sockaddr*>(&remoteAddress), sizeof(sockaddr_in6)) == SOCKET_ERROR)
     {
         return false;
     }

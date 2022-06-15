@@ -5,6 +5,7 @@
 #include "UdcCommon.h"
 
 #include <cassert>
+#include <iostream>
 
 UdcSocketReceiver::UdcSocketReceiver(size_t maxMessageSize)
     : m_wsaStarted(false)
@@ -30,7 +31,7 @@ UdcSocketReceiver::~UdcSocketReceiver()
     }
 }
 
-bool UdcSocketReceiver::connect(uint16_t port)
+bool UdcSocketReceiver::connect(uint16_t localPort)
 {
     m_connected = false;
 
@@ -64,12 +65,12 @@ bool UdcSocketReceiver::connect(uint16_t port)
 
     // Establish socket info
     in_addr ip_addr {};
-    ip_addr.s_addr = inet_addr("127.0.0.1");
+    ip_addr.s_addr = INADDR_ANY;
 
     sockaddr_in address =
         {
             .sin_family = AF_INET,
-            .sin_port = htons(port),
+            .sin_port = htons(localPort),
             .sin_addr = ip_addr,
             .sin_zero = {0,0,0,0,0,0,0,0},
         };
@@ -80,8 +81,14 @@ bool UdcSocketReceiver::connect(uint16_t port)
         return false;
     }
 
+    // Set socket reuse address
+    if (!setSocketReuseAddress(m_socket))
+    {
+        return false;
+    }
+
     // Bind to ip/port
-    if (bind(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == SOCKET_ERROR)
+    if (::bind(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == SOCKET_ERROR)
     {
         return false;
     }
@@ -90,15 +97,21 @@ bool UdcSocketReceiver::connect(uint16_t port)
     return true;
 }
 
-bool UdcSocketReceiver::receive(IpVersion& version, IpAddress& address, uint16_t& port, uint8_t* msg, size_t& size)
+bool UdcSocketReceiver::receive(
+    UdcAddressFamily& addressFamily,
+    UdcAddressIPv4& addressIPv4,
+    UdcAddressIPv6& addressIPv6,
+    uint16_t& port,
+    Buffer& message,
+    size_t& messageSize)
 {
     if (!m_connected)
     {
         return false;
     }
 
-    sockaddr_in address {};
-    int addressSize = sizeof(address);
+    sockaddr_storage remoteAddress {};
+    int remoteAddressSize = sizeof(sockaddr);
 
     // Receive messages, ignoring messages with errors
     while(true)
@@ -108,8 +121,8 @@ bool UdcSocketReceiver::receive(IpVersion& version, IpAddress& address, uint16_t
             reinterpret_cast<char*>(m_buffer.data()),
             static_cast<int>(m_buffer.size()),
             0,
-            reinterpret_cast<sockaddr*>(&address),
-            &addressSize);
+            reinterpret_cast<sockaddr*>(&remoteAddress),
+            &remoteAddressSize);
 
         // Connection was closed
         if (result == 0)
@@ -140,16 +153,29 @@ bool UdcSocketReceiver::receive(IpVersion& version, IpAddress& address, uint16_t
         }
 
         // No socket error, return the message
-        msg.resize(result);
+
+        message = m_buffer.data();
+        messageSize = result;
 
         // Copy from buffer to msg
         // message size should be <= buffer size, guaranteed by call to recvfrom
-        assert(msg.size() <= m_buffer.size());
-        memcpy(msg.data(), m_buffer.data(), msg.size());
+        assert(messageSize <= m_buffer.size());
 
         // Return the ip/port
-        port = ntohs(address.sin_port);
-        convertToIp(&address, ip);
+        if (remoteAddress.ss_family == AF_INET6)
+        {
+            // IPv6
+            auto* address = reinterpret_cast<const sockaddr_in6*>(&remoteAddress);
+            port = ntohs(address->sin6_port);
+            convertToIPv6(address->sin6_addr, addressIPv6);
+        }
+        else
+        {
+            // IPv4
+            auto* address = reinterpret_cast<const sockaddr_in*>(&remoteAddress);
+            port = ntohs(address->sin_port);
+            convertToIPv4(address->sin_addr, addressIPv4);
+        }
 
         return true;
     }
