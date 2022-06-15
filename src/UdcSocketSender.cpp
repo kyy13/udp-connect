@@ -89,3 +89,15 @@ bool UdcSocketSender::send(const char* msg) const
 
     return ::send(m_socket, msg, static_cast<int>(strlen(msg)), 0) != SOCKET_ERROR;
 }
+
+void UdcSocketSender::disconnect()
+{
+    // Close previous socket if necessary
+    if (m_socket != INVALID_SOCKET)
+    {
+        closesocket(m_socket);
+        m_socket = INVALID_SOCKET;
+    }
+
+    m_connected = false;
+}

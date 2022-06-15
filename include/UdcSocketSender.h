@@ -15,9 +15,16 @@ public:
     UdcSocketSender& operator=(const UdcSocketSender&) = delete;
     ~UdcSocketSender();
 
+    // Connect to a port for sending
+    // calling connect again will disconnect,
+    // and then reconnect to the specified port
     bool connect(const char* ip, u_short port);
 
+    // Send a message to connected port
     bool send(const char* msg) const;
+
+    // Manually disconnect from a port
+    void disconnect();
 
 protected:
     bool m_wsaStarted;
