@@ -20,7 +20,7 @@ public:
     // destination ip/port.
     // Connect can be called multiple times without calling disconnect()
     // in order to change the ip/port.
-    bool connect(const char* ip, u_short port);
+    bool connect(const char* ip, u_short localPort, u_short remotePort);
 
     // Send a message to connected port
     bool send(const char* msg) const;

@@ -29,7 +29,7 @@ UdcSocketSender::~UdcSocketSender()
     }
 }
 
-bool UdcSocketSender::connect(const char* ip, u_short port)
+bool UdcSocketSender::connect(const char* ip, u_short localPort, u_short remotePort)
 {
     m_connected = false;
 
@@ -63,12 +63,22 @@ bool UdcSocketSender::connect(const char* ip, u_short port)
 
     // Establish socket info
     in_addr ip_addr {};
-    ip_addr.s_addr = inet_addr(ip);
+    ip_addr.s_addr = INADDR_ANY;
 
-    sockaddr_in address =
+    sockaddr_in localAddress =
         {
             .sin_family = AF_INET,
-            .sin_port = htons(port),
+            .sin_port = htons(localPort),
+            .sin_addr = ip_addr,
+            .sin_zero = {0,0,0,0,0,0,0,0},
+        };
+
+    ip_addr.s_addr = inet_addr(ip);
+
+    sockaddr_in remoteAddress =
+        {
+            .sin_family = AF_INET,
+            .sin_port = htons(remotePort),
             .sin_addr = ip_addr,
             .sin_zero = {0,0,0,0,0,0,0,0},
         };
@@ -79,8 +89,14 @@ bool UdcSocketSender::connect(const char* ip, u_short port)
         return false;
     }
 
-    // Connect to ip/port
-    if (::connect(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == SOCKET_ERROR)
+    // Bind to sending port
+    if (::bind(m_socket, reinterpret_cast<sockaddr*>(&localAddress), sizeof(localAddress)) == SOCKET_ERROR)
+    {
+        return false;
+    }
+
+    // Connect to remote port
+    if (::connect(m_socket, reinterpret_cast<sockaddr*>(&remoteAddress), sizeof(remoteAddress)) == SOCKET_ERROR)
     {
         return false;
     }

@@ -23,7 +23,7 @@ public:
 
     // Receive messages from the connected port
     // ignoring messages that are larger than maxMessageSize
-    bool receive(std::string& ip, std::vector<uint8_t>& msg);
+    bool receive(std::string& ip, u_short& port, std::vector<uint8_t>& msg);
 
     // Manually closes the socket
     void disconnect();

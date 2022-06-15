@@ -90,7 +90,7 @@ bool UdcSocketReceiver::connect(u_short port)
     return true;
 }
 
-bool UdcSocketReceiver::receive(std::string& ip, std::vector<uint8_t>& msg)
+bool UdcSocketReceiver::receive(std::string& ip, u_short& port, std::vector<uint8_t>& msg)
 {
     if (!m_connected)
     {
@@ -148,6 +148,7 @@ bool UdcSocketReceiver::receive(std::string& ip, std::vector<uint8_t>& msg)
         memcpy(msg.data(), m_buffer.data(), msg.size());
 
         // Return the ip/port
+        port = ntohs(address.sin_port);
         convertToIp(&address, ip);
 
         return true;
