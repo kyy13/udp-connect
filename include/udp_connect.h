@@ -8,6 +8,10 @@
 
 extern "C"
 {
+    // A local server
+    struct UdcServer;
+
+    // A connection to a remove client
     struct UdcClient;
 
     enum UdcStatus : uint8_t
@@ -35,38 +39,42 @@ extern "C"
         UDC_ALREADY_CONNECTED,
     };
 
-    // Starts the receiving UDP server
+    // Creates a local server responsible for reading and acknowledging
+    // messages from remote clients
+    UdcServer* udcCreateServer();
+
+    // Call udcStopServer() and delete the server
+    void udcDeleteServer(UdcServer* server);
+
+    // Starts a server on a port allowing clients to connect
     UdcResult udcStartServer(int port);
 
-    // Stops the receiving UDP server
-    void udcStopServer();
+    // Stops a server and disconnects clients
+    // clears pending incoming/outgoing messages
+    void udcStopServer(UdcServer* server);
 
-    // Creates a client that can be connected to
+    // Creates a handle to a client that can be connected to
     UdcClient* udcCreateClient();
 
-    // Destroys a client and the connection to it
-    void udcDestroyClient(UdcClient* client);
+    // Calls udcDisconnect() and deletes the handle to client
+    void udcDeleteClient(UdcClient* client);
 
     // Try to connect to a client from a server
     // Call if state is UDC_NOT_CONNECTED or UDC_CONNECTION_FAILED
-    UdcResult udcTryConnect(UdcClient* client, const char* ip, int port, float timeout, int attempts);
+    UdcResult udcTryConnect(UdcServer* server, UdcClient* client, const char* ip, int port, float timeout, int attempts);
 
     // Attempt to reconnect after disconnecting
     // Call if state is UDC_CONNECTION_LOST
-    // If the ip/port needs to be changed, then disconnect first and use udcTryConnect
+    // If the ip, port, or server needs to be changed, then disconnect first and use udcTryConnect
     UdcResult udcTryReconnect(UdcClient* client, float timeout, int attempts);
 
     // Disconnect from a client
     // Removing all pending messages (sent and received)
     void udcDisconnect(UdcClient* client);
 
-    // Read unassigned messages from the server
+    // Read messages from the server
     // returns true until all messages have been read
-    bool udcReadServer(UdcClient* client, char* message, uint32_t& size);
-
-    // Read messages from a client
-    // returns true until all messages have been read
-    bool udcReadClient(UdcClient* client, char* message, uint32_t& size);
+    bool udcReadServer(UdcClient*& client, char* message, uint32_t& size);
 
     // Send a message to the client
     UdcResult udcWriteClient(UdcClient* client, const char* message, UdcReliability reliability);

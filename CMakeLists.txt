@@ -10,7 +10,8 @@ option(BUILD_TESTS "build tests?" ON)
 add_library(
     ${PROJECT_NAME}
     SHARED
-    src/udp_connect.cpp
+    src/UdcCommon.cpp
+    src/UdcSocketSender.cpp
 )
 
 # includes
@@ -48,6 +49,7 @@ set_target_properties(
 # link libraries
 target_link_libraries(
     ${PROJECT_NAME}
+    Ws2_32
     -static-libgcc
     -static-libstdc++
     -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
