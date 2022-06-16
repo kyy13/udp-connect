@@ -7,13 +7,28 @@ project(udpconnect)
 option(BUILD_TESTS "build tests?" ON)
 
 # library
-add_library(
-    ${PROJECT_NAME}
-    SHARED
+
+set(
+    SOURCES
     src/udp_connect.cpp
     src/UdcCommon.cpp
     src/UdcSocketSender.cpp
     src/UdcSocketReceiver.cpp
+)
+
+IF(WIN32)
+    set(
+        SOURCES
+        ${SOURCES}
+        platform/win32/src/socketHelper.cpp
+        platform/win32/src/UdcSocket.cpp
+    )
+ENDIF()
+
+add_library(
+    ${PROJECT_NAME}
+    SHARED
+    ${SOURCES}
 )
 
 # includes
@@ -21,8 +36,16 @@ target_include_directories(
     ${PROJECT_NAME}
     PUBLIC
     include
-    ext/k13/include
 )
+
+IF (WIN32)
+    add_compile_definitions(OS_WINDOWS)
+    target_include_directories(
+        ${PROJECT_NAME}
+        PUBLIC
+        platform/win32/include
+    )
+ENDIF()
 
 IF (CMAKE_BUILD_TYPE MATCHES Debug)
     target_compile_options(
