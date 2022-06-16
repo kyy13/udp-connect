@@ -71,13 +71,13 @@ bool UdcSocketSender::connect(UdcAddressIPv4 remoteIp, uint16_t remotePort)
 
     // Configure remote address
     ip_addr = convertFromIPv4(remoteIp);
-    sockaddr_in remoteAddress =
-        {
-            .sin_family = AF_INET,
-            .sin_port = htons(remotePort),
-            .sin_addr = ip_addr,
-            .sin_zero = {0,0,0,0,0,0,0,0},
-        };
+
+    sockaddr_in remoteAddress;
+    memset(&remoteAddress, 0, sizeof(remoteAddress));
+
+    remoteAddress.sin_family = AF_INET;
+    remoteAddress.sin_port = htons(remotePort);
+    remoteAddress.sin_addr = ip_addr;
 
     // Connect to remote port
     if (::connect(m_socket, reinterpret_cast<sockaddr*>(&remoteAddress), sizeof(sockaddr_in)) == SOCKET_ERROR)
@@ -128,13 +128,12 @@ bool UdcSocketSender::connect(UdcAddressIPv6 remoteIp, uint16_t remotePort)
     }
 
     // Configure remote address
-    in6_addr ip_addr = convertFromIPv6(remoteIp);
-    sockaddr_in6 remoteAddress =
-        {
-            .sin6_family = AF_INET6,
-            .sin6_port = htons(remotePort),
-            .sin6_addr = ip_addr,
-        };
+    sockaddr_in6 remoteAddress;
+    memset(&remoteAddress, 0, sizeof(remoteAddress));
+
+    remoteAddress.sin6_family = AF_INET6;
+    remoteAddress.sin6_port = htons(remotePort);
+    remoteAddress.sin6_addr = convertFromIPv6(remoteIp);
 
     // Connect to remote port
     if (::connect(m_socket, reinterpret_cast<sockaddr*>(&remoteAddress), sizeof(sockaddr_in6)) == SOCKET_ERROR)

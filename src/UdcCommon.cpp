@@ -12,15 +12,16 @@ bool setSocketNonBlocking(SOCKET socket)
     return ioctlsocket(socket, FIONBIO, &mode) != SOCKET_ERROR;
 }
 
-bool setSocketReuseAddress(SOCKET socket)
+bool setSocketIpv6OnlyOff(SOCKET socket)
 {
-    int opt = 1;
-    return setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&opt), sizeof(opt)) != SOCKET_ERROR;
+    u_long opt = 0;
+    return setsockopt(socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&opt), sizeof(opt)) != SOCKET_ERROR;
 }
 
 in_addr convertFromIPv4(const UdcAddressIPv4& address)
 {
-    in_addr result {};
+    in_addr result;
+    memset(&result, 0, sizeof(result));
     memcpy(&result.S_un.S_un_b.s_b1, address.octets, sizeof(address.octets));
     return result;
 }
@@ -32,7 +33,8 @@ void convertToIPv4(const in_addr& src, UdcAddressIPv4& dst)
 
 in6_addr convertFromIPv6(const UdcAddressIPv6& address)
 {
-    in6_addr result {};
+    in6_addr result;
+    memset(&result, 0, sizeof(result));
     memcpy(result.u.Byte, address.segments, sizeof(address.segments));
     return result;
 }

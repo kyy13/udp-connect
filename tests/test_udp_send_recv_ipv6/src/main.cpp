@@ -6,13 +6,14 @@
 
 #include <cstring>
 #include <iostream>
+#include <thread>
 
 int main()
 {
     const uint8_t udpMessage[] = {'H', 'E', 'L', 'L', 'O', '!'};
 
-    UdcAddressIPv4 loopBack {};
-    if (!udcStringToIPv4("127.0.0.1", &loopBack))
+    UdcAddressIPv6 loopBack {};
+    if (!udcStringToIPv6("0:0:0:0:0:0:0:1", &loopBack))
     {
         std::cout << "failed to convert ip string\n";
         return -1;
@@ -23,7 +24,7 @@ int main()
 
     // Connect sender
 
-    if (!uss.connect(loopBack, 1234))
+    if (!uss.connect(loopBack, 1235))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -37,7 +38,7 @@ int main()
 
     // Connect to a different port (without calling disconnect)
 
-    if (!uss.connect(loopBack, 4321))
+    if (!uss.connect(loopBack, 4322))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -53,7 +54,7 @@ int main()
 
     uss.disconnect();
 
-    if (!uss.connect(loopBack, 7777))
+    if (!uss.connect(loopBack, 7778))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -67,7 +68,7 @@ int main()
 
     // Connect receiver
 
-    if (!usr.connect(7777))
+    if (!usr.connect(7778))
     {
         std::cout << "failed to connect socket receiver\n";
         return -1;
@@ -84,7 +85,7 @@ int main()
 
     bool received = false;
 
-    for (size_t i = 0; i != 1000; ++i)
+    for (size_t i = 0; i != 100; ++i)
     {
         if (!uss.send(udpMessage, sizeof(udpMessage)))
         {
@@ -94,18 +95,6 @@ int main()
 
         if (usr.receive(family, ipv4, ipv6, message, messageSize))
         {
-            if (family != UDC_IPV4)
-            {
-                std::cout << "ip family received incorrectly.\n";
-                return -1;
-            }
-
-            if (std::memcmp(loopBack.octets, ipv4.octets, sizeof(ipv4.octets)) != 0)
-            {
-                std::cout << "packet ip received incorrectly.\n";
-                return -1;
-            }
-
             if (std::memcmp(message, udpMessage, sizeof(udpMessage)) != 0)
             {
                 std::cout << "packet received incorrectly.\n";
@@ -114,6 +103,8 @@ int main()
 
             received = true;
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
     if (!received)

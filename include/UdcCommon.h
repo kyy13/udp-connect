@@ -11,7 +11,7 @@
 #include <ws2tcpip.h>
 
 bool setSocketNonBlocking(SOCKET socket);
-bool setSocketReuseAddress(SOCKET socket);
+bool setSocketIpv6OnlyOff(SOCKET socket);
 
 in_addr convertFromIPv4(const UdcAddressIPv4& address);
 void convertToIPv4(const in_addr& src, UdcAddressIPv4& dst);

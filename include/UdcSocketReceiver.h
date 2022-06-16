@@ -18,9 +18,12 @@ class UdcSocketReceiver
 public:
     using Buffer = const uint8_t*;
 
-    UdcSocketReceiver(size_t maxMessageSize);
+    explicit UdcSocketReceiver(size_t maxMessageSize);
+
     UdcSocketReceiver(const UdcSocketReceiver&) = delete;
+
     UdcSocketReceiver& operator=(const UdcSocketReceiver&) = delete;
+
     ~UdcSocketReceiver();
 
     bool connect(uint16_t localPort);

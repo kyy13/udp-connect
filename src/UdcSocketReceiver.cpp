@@ -56,30 +56,33 @@ bool UdcSocketReceiver::connect(uint16_t localPort)
     }
 
     // Create a socket
-    m_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    m_socket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
     if (m_socket == INVALID_SOCKET)
     {
         return false;
     }
 
-    // Establish socket info
-    in_addr ip_addr {};
-    ip_addr.s_addr = INADDR_ANY;
-
-    sockaddr_in address =
-        {
-            .sin_family = AF_INET,
-            .sin_port = htons(localPort),
-            .sin_addr = ip_addr,
-            .sin_zero = {0,0,0,0,0,0,0,0},
-        };
-
     // Set socket non-blocking
     if (!setSocketNonBlocking(m_socket))
     {
         return false;
     }
+
+    // Try to allow socket to receive IPv4 packets as well
+    // not available on Windows XP
+    if (!setSocketIpv6OnlyOff(m_socket))
+    {
+        return false;
+    }
+
+    // Establish socket info
+    sockaddr_in6 address;
+    memset(&address, 0, sizeof(address));
+
+    address.sin6_family = AF_INET6;
+    address.sin6_port = htons(localPort);
+    address.sin6_addr = IN6ADDR_ANY_INIT;
 
     // Bind to ip/port
     if (::bind(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == SOCKET_ERROR)
@@ -104,7 +107,7 @@ bool UdcSocketReceiver::receive(
     }
 
     sockaddr_storage remoteAddress {};
-    int remoteAddressSize = sizeof(sockaddr);
+    int remoteAddressSize = sizeof(sockaddr_storage);
 
     // Receive messages, ignoring messages with errors
     while(true)
@@ -160,12 +163,14 @@ bool UdcSocketReceiver::receive(
             // IPv6
             auto* address = reinterpret_cast<const sockaddr_in6*>(&remoteAddress);
             convertToIPv6(address->sin6_addr, addressIPv6);
+            addressFamily = UDC_IPV6;
         }
         else
         {
             // IPv4
             auto* address = reinterpret_cast<const sockaddr_in*>(&remoteAddress);
             convertToIPv4(address->sin_addr, addressIPv4);
+            addressFamily = UDC_IPV4;
         }
 
         return true;
