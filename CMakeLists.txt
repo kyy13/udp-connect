@@ -20,7 +20,7 @@ IF(WIN32)
     set(
         SOURCES
         ${SOURCES}
-        platform/win32/src/socketHelper.cpp
+            platform/win32/src/UdcSocketHelper.cpp
         platform/win32/src/UdcSocket.cpp
     )
 ENDIF()

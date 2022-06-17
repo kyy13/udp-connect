@@ -2,58 +2,19 @@
 // Kyle J Burgess
 
 #include "UdcSocket.h"
+#include "UdcSocketHelper.h"
 
-#ifdef WINDOWS_OS
+#include <ws2tcpip.h>
+
+#ifdef OS_WINDOWS
 
 UdcSocket::UdcSocket()
     : m_socket(INVALID_SOCKET)
 {}
 
-// Creates a socket
-// returns INVALID_SOCKET on failure
-SOCKET createSocket(int protocol)
+UdcSocket::~UdcSocket()
 {
-    WSAData wsaData;
-
-    // Start WSA v2.2
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR)
-    {
-        return INVALID_SOCKET;
-    }
-
-    // Create socket
-    SOCKET s = socket(protocol, SOCK_DGRAM, IPPROTO_UDP);
-
-    // If WSA was started and socket creation failed, then cleanup WSA
-    if (s == INVALID_SOCKET)
-    {
-        WSACleanup();
-    }
-
-    return s;
-}
-
-// Deletes a socket
-void deleteSocket(SOCKET s)
-{
-    if (s != INVALID_SOCKET)
-    {
-        closesocket(s);
-        WSACleanup();
-    }
-}
-
-// Set socket non-blocking option (true = not-blocking)
-bool setSocketNonBlocking(SOCKET socket)
-{
-    u_long mode = 1;
-    return ioctlsocket(socket, FIONBIO, &mode) != SOCKET_ERROR;
-}
-
-bool setSocketIpv6OnlyOff(SOCKET socket)
-{
-    u_long opt = 0;
-    return setsockopt(socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&opt), sizeof(opt)) != SOCKET_ERROR;
+    deleteSocket(m_socket);
 }
 
 bool UdcSocket::remoteConnect(UdcAddressIPv4 remoteIp, uint16_t remotePort)
@@ -65,7 +26,141 @@ bool UdcSocket::remoteConnect(UdcAddressIPv4 remoteIp, uint16_t remotePort)
         return false;
     }
 
+    if (!setSocketOptionNonBlocking(s, true))
+    {
+        deleteSocket(s);
+        return false;
+    }
+
+    if (!connectSocket(s, createAddressIPv4(remoteIp, remotePort)))
+    {
+        deleteSocket(s);
+        return false;
+    }
+
+    m_socket = s;
     return true;
+}
+
+bool UdcSocket::remoteConnect(UdcAddressIPv6 remoteIp, uint16_t remotePort)
+{
+    SOCKET s = createSocket(AF_INET6);
+
+    if (s == INVALID_SOCKET)
+    {
+        return false;
+    }
+
+    if (!setSocketOptionNonBlocking(s, true))
+    {
+        deleteSocket(s);
+        return false;
+    }
+
+    if (!connectSocket(s, createAddressIPv6(remoteIp, remotePort)))
+    {
+        deleteSocket(s);
+        return false;
+    }
+
+    m_socket = s;
+    return true;
+}
+
+bool UdcSocket::localBindIPv4(uint16_t localPort)
+{
+    SOCKET s = createSocket(AF_INET);
+
+    if (s == INVALID_SOCKET)
+    {
+        return false;
+    }
+
+    if (!setSocketOptionNonBlocking(s, true))
+    {
+        deleteSocket(s);
+        return false;
+    }
+
+    if (!bindSocket(s, createAddressIPv4(INADDR_ANY, localPort)))
+    {
+        deleteSocket(s);
+        return false;
+    }
+
+    m_socket = s;
+    return true;
+}
+
+bool UdcSocket::localBindIPv6(uint16_t localPort, bool allowIPv4)
+{
+    SOCKET s = createSocket(AF_INET6);
+
+    if (s == INVALID_SOCKET)
+    {
+        return false;
+    }
+
+    if (!setSocketOptionNonBlocking(s, true))
+    {
+        deleteSocket(s);
+        return false;
+    }
+
+    if (allowIPv4)
+    {
+        if (!setSocketOptionIpv6Only(s, false))
+        {
+            deleteSocket(s);
+            return false;
+        }
+    }
+
+    if (!bindSocket(s, createAddressIPv6(IN6ADDR_ANY_INIT, localPort)))
+    {
+        deleteSocket(s);
+        return false;
+    }
+
+    m_socket = s;
+    return true;
+}
+
+void UdcSocket::disconnect()
+{
+    deleteSocket(m_socket);
+}
+
+bool UdcSocket::send(const std::vector<uint8_t>& data) const
+{
+    if (m_socket == INVALID_SOCKET)
+    {
+        return false;
+    }
+
+    return sendPacket(m_socket, data);
+}
+
+int32_t UdcSocket::receive(UdcAddressIPv4& sourceIP, std::vector<uint8_t>& data, size_t maxSize) const
+{
+    if (m_socket == INVALID_SOCKET)
+    {
+        return -2;
+    }
+
+    m_buffer.resize(maxSize);
+    return receivePacketIPv4(m_socket, m_buffer, sourceIP, data);
+}
+
+int32_t UdcSocket::receive(UdcAddressIPv6& sourceIP, std::vector<uint8_t>& data, size_t maxSize) const
+{
+    if (m_socket == INVALID_SOCKET)
+    {
+        return -2;
+    }
+
+    m_buffer.resize(maxSize);
+    return receivePacketIPv6(m_socket, m_buffer, sourceIP, data);
 }
 
 #endif
