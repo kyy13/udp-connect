@@ -2,194 +2,80 @@
 // Kyle J Burgess
 
 #include "UdcSocketReceiver.h"
-#include "UdcCommon.h"
 
-#include <cassert>
-#include <iostream>
-
-UdcSocketReceiver::UdcSocketReceiver(size_t maxMessageSize)
-    : m_wsaStarted(false)
-    , m_connected(false)
-    , m_socket(INVALID_SOCKET)
+bool UdcSocketReceiver::bind(uint16_t primaryPortIPv6, uint16_t backupPortIPv4)
 {
-    m_buffer.resize(maxMessageSize);
-}
-
-UdcSocketReceiver::~UdcSocketReceiver()
-{
-    // Close previous socket if necessary
-    if (m_socket != INVALID_SOCKET)
+    // Disconnected if already connected
+    if (m_primarySocket.isConnected())
     {
-        closesocket(m_socket);
-        m_socket = INVALID_SOCKET;
+        m_primarySocket.disconnect();
+        m_backupSocket.disconnect();
     }
 
-    // Cleanup WSA lib
-    if (m_wsaStarted)
+    // Attempt to bind IPv6 port with dual stack IPv4 support
+    if (m_primarySocket.localBindIPv6(primaryPortIPv6, true))
     {
-        WSACleanup();
-    }
-}
-
-bool UdcSocketReceiver::connect(uint16_t localPort)
-{
-    m_connected = false;
-
-    // Start WSA if necessary
-    if (!m_wsaStarted)
-    {
-        WSADATA wsaData;
-
-        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR)
-        {
-            return false;
-        }
-
-        m_wsaStarted = true;
+        return true;
     }
 
-    // Close previous socket if necessary
-    if (m_socket != INVALID_SOCKET)
+    // Attempt to bind IPv6 on primary socket and IPv4 on secondary socket
+    if (m_primarySocket.localBindIPv6(primaryPortIPv6, false) &&
+        m_backupSocket.localBindIPv4(backupPortIPv4))
     {
-        closesocket(m_socket);
-        m_socket = INVALID_SOCKET;
+        return true;
     }
 
-    // Create a socket
-    m_socket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-
-    if (m_socket == INVALID_SOCKET)
-    {
-        return false;
-    }
-
-    // Set socket non-blocking
-    if (!setSocketNonBlocking(m_socket))
-    {
-        return false;
-    }
-
-    // Try to allow socket to receive IPv4 packets as well
-    // not available on Windows XP
-    if (!setSocketIpv6OnlyOff(m_socket))
-    {
-        return false;
-    }
-
-    // Establish socket info
-    sockaddr_in6 address;
-    memset(&address, 0, sizeof(address));
-
-    address.sin6_family = AF_INET6;
-    address.sin6_port = htons(localPort);
-    address.sin6_addr = IN6ADDR_ANY_INIT;
-
-    // Bind to ip/port
-    if (::bind(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == SOCKET_ERROR)
-    {
-        return false;
-    }
-
-    m_connected = true;
-    return true;
+    // Failed to bind
+    return false;
 }
 
 bool UdcSocketReceiver::receive(
     UdcAddressFamily& addressFamily,
-    UdcAddressIPv4& addressIPv4,
-    UdcAddressIPv6& addressIPv6,
-    Buffer& message,
-    size_t& messageSize)
+    UdcAddress& address,
+    std::vector<uint8_t>& data)
 {
-    if (!m_connected)
+    // Not connected
+    if (!m_primarySocket.isConnected())
     {
         return false;
     }
 
-    sockaddr_storage remoteAddress {};
-    int remoteAddressSize = sizeof(sockaddr_storage);
+    int32_t result;
 
-    // Receive messages, ignoring messages with errors
-    while(true)
+    // IPv6 connected with dual stack IPv4 support
+    if (!m_backupSocket.isConnected())
     {
-        int result = recvfrom(
-            m_socket,
-            reinterpret_cast<char*>(m_buffer.data()),
-            static_cast<int>(m_buffer.size()),
-            0,
-            reinterpret_cast<sockaddr*>(&remoteAddress),
-            &remoteAddressSize);
+        addressFamily = UDC_IPV6;
+        result = m_primarySocket.receive(address.ipv6, data);
+        return (result == 1);
+    }
 
-        // Connection was closed
-        if (result == 0)
-        {
-            m_connected = false;
-            return false;
-        }
+    // IPv6 and IPv4 connected separately
+    addressFamily = UDC_IPV6;
+    result = m_primarySocket.receive(address.ipv6, data);
 
-        // Socket error
-        if (result == SOCKET_ERROR)
-        {
-            int error = WSAGetLastError();
-
-            // Message was too long, skip
-            if (error == WSAEMSGSIZE)
-            {
-                continue;
-            }
-
-            // No messages left
-            if (error == WSAEWOULDBLOCK)
-            {
-                return false;
-            }
-
-            // Other error
-            return false;
-        }
-
-        // No socket error, return the message
-
-        message = m_buffer.data();
-        messageSize = result;
-
-        // Copy from buffer to msg
-        // message size should be <= buffer size, guaranteed by call to recvfrom
-        assert(messageSize <= m_buffer.size());
-
-        // Return the ip/port
-        if (remoteAddress.ss_family == AF_INET6)
-        {
-            // IPv6
-            auto* address = reinterpret_cast<const sockaddr_in6*>(&remoteAddress);
-            convertToIPv6(address->sin6_addr, addressIPv6);
-            addressFamily = UDC_IPV6;
-        }
-        else
-        {
-            // IPv4
-            auto* address = reinterpret_cast<const sockaddr_in*>(&remoteAddress);
-            convertToIPv4(address->sin_addr, addressIPv4);
-            addressFamily = UDC_IPV4;
-        }
-
+    if (result == 1)
+    {
         return true;
     }
+
+    addressFamily = UDC_IPV4;
+    result = m_backupSocket.receive(address.ipv4, data);
+
+    return (result == 1);
 }
 
 void UdcSocketReceiver::disconnect()
 {
-    // Close previous socket if necessary
-    if (m_socket != INVALID_SOCKET)
+    // Disconnected if already connected
+    if (m_primarySocket.isConnected())
     {
-        closesocket(m_socket);
-        m_socket = INVALID_SOCKET;
+        m_primarySocket.disconnect();
+        m_backupSocket.disconnect();
     }
-
-    m_connected = false;
 }
 
 bool UdcSocketReceiver::isConnected() const
 {
-    return m_connected;
+    return m_primarySocket.isConnected();
 }

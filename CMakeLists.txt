@@ -11,7 +11,6 @@ option(BUILD_TESTS "build tests?" ON)
 set(
     SOURCES
     src/udp_connect.cpp
-    src/UdcCommon.cpp
     src/UdcSocketSender.cpp
     src/UdcSocketReceiver.cpp
 )
@@ -20,7 +19,7 @@ IF(WIN32)
     set(
         SOURCES
         ${SOURCES}
-            platform/win32/src/UdcSocketHelper.cpp
+        platform/win32/src/UdcSocketHelper.cpp
         platform/win32/src/UdcSocket.cpp
     )
 ENDIF()
@@ -36,6 +35,7 @@ target_include_directories(
     ${PROJECT_NAME}
     PUBLIC
     include
+    platform
 )
 
 IF (WIN32)

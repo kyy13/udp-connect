@@ -30,15 +30,19 @@ public:
     // Destructor
     ~UdcSocket();
 
+    // Returns true if the socket is connected
+    [[nodiscard]]
+    bool isConnected() const;
+
     // Connect to a remote node with IPv4
     // returns true on success
     [[nodiscard]]
-    bool remoteConnect(UdcAddressIPv4 remoteIp, uint16_t remotePort);
+    bool remoteConnect(const UdcAddressIPv4& remoteIp, uint16_t remotePort);
 
     // Connect to a remote node with IPv6
     // returns true on success
     [[nodiscard]]
-    bool remoteConnect(UdcAddressIPv6 remoteIp, uint16_t remotePort);
+    bool remoteConnect(const UdcAddressIPv6& remoteIp, uint16_t remotePort);
 
     // Start a connection to a local socket that can listen for IPv4 packets
     // returns true on success

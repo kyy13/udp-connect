@@ -7,6 +7,8 @@
 #include <ws2tcpip.h>
 
 #ifdef OS_WINDOWS
+#include <iostream>
+std::vector<uint8_t> UdcSocket::m_buffer;
 
 UdcSocket::UdcSocket()
     : m_socket(INVALID_SOCKET)
@@ -17,23 +19,31 @@ UdcSocket::~UdcSocket()
     deleteSocket(m_socket);
 }
 
-bool UdcSocket::remoteConnect(UdcAddressIPv4 remoteIp, uint16_t remotePort)
+bool UdcSocket::isConnected() const
+{
+    return m_socket != INVALID_SOCKET;
+}
+
+bool UdcSocket::remoteConnect(const UdcAddressIPv4& remoteIp, uint16_t remotePort)
 {
     SOCKET s = createSocket(AF_INET);
 
     if (s == INVALID_SOCKET)
     {
+        std::cout << "1";
         return false;
     }
 
     if (!setSocketOptionNonBlocking(s, true))
     {
+        std::cout << "2";
         deleteSocket(s);
         return false;
     }
 
     if (!connectSocket(s, createAddressIPv4(remoteIp, remotePort)))
     {
+        std::cout << "3";
         deleteSocket(s);
         return false;
     }
@@ -42,7 +52,7 @@ bool UdcSocket::remoteConnect(UdcAddressIPv4 remoteIp, uint16_t remotePort)
     return true;
 }
 
-bool UdcSocket::remoteConnect(UdcAddressIPv6 remoteIp, uint16_t remotePort)
+bool UdcSocket::remoteConnect(const UdcAddressIPv6& remoteIp, uint16_t remotePort)
 {
     SOCKET s = createSocket(AF_INET6);
 

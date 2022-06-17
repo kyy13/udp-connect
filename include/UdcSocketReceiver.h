@@ -4,39 +4,34 @@
 #ifndef UDC_SOCKET_RECEIVER_H
 #define UDC_SOCKET_RECEIVER_H
 
-#include "udp_connect.h"
+#include "UdcSocket.h"
 
-#include <cstdint>
-#include <string>
-#include <vector>
-#include <winsock2.h>
+union UdcAddress
+{
+    UdcAddressIPv4 ipv4;
+    UdcAddressIPv6 ipv6;
+};
 
 // UdcSocketReceiver
 // Manages receiving UDP packets on a local port
 class UdcSocketReceiver
 {
 public:
-    using Buffer = const uint8_t*;
 
-    explicit UdcSocketReceiver(size_t maxMessageSize);
+    // Attempt to bind primaryPort as a dual-stack IPv6 port that's capable of receiving IPv4 and IPv6
+    // If dual-stack is not available, then binds an IPv6 port on primaryPort and an IPv4 port on backupPort
+    [[nodiscard]]
+    bool bind(
+        uint16_t primaryPortIPv6,
+        uint16_t backupPortIPv4);
 
-    UdcSocketReceiver(const UdcSocketReceiver&) = delete;
-
-    UdcSocketReceiver& operator=(const UdcSocketReceiver&) = delete;
-
-    ~UdcSocketReceiver();
-
-    bool connect(uint16_t localPort);
-
-    // Receive messages from the connected port and return true
+    // Receive messages from the connected port and returns true
     // returns false when there are no messages to receive
     // ignores messages that are larger than maxMessageSize
     bool receive(
         UdcAddressFamily& addressFamily,
-        UdcAddressIPv4& addressIPv4,
-        UdcAddressIPv6& addressIPv6,
-        Buffer& message,
-        size_t& messageSize);
+        UdcAddress& address,
+        std::vector<uint8_t>& data);
 
     // Manually closes the socket
     void disconnect();
@@ -46,10 +41,8 @@ public:
     bool isConnected() const;
 
 protected:
-    bool m_wsaStarted;
-    bool m_connected;
-    SOCKET m_socket;
-    std::vector<uint8_t> m_buffer;
+    UdcSocket m_primarySocket;
+    UdcSocket m_backupSocket;
 };
 
 #endif

@@ -49,7 +49,8 @@ bool bindSocket(SOCKET s, sockaddr_in6 address)
 
 bool connectSocket(SOCKET s, sockaddr_in address)
 {
-    return connect(s, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != SOCKET_ERROR;
+    int result = connect(s, reinterpret_cast<sockaddr*>(&address), sizeof(address));
+    return result != SOCKET_ERROR;
 }
 
 bool connectSocket(SOCKET s, sockaddr_in6 address)
@@ -73,8 +74,11 @@ sockaddr_in createAddressIPv4(const UdcAddressIPv4& address, uint16_t port)
 {
     sockaddr_in result;
     memset(&result, 0, sizeof(result));
-    memcpy(&result.sin_addr.S_un.S_un_b.s_b1, address.octets, sizeof(address.octets));
+
+    result.sin_family = AF_INET;
     result.sin_port = htons(port);
+    memcpy(&result.sin_addr.S_un.S_un_b.s_b1, address.octets, sizeof(address.octets));
+
     return result;
 }
 
@@ -82,8 +86,11 @@ sockaddr_in createAddressIPv4(u_long address, uint16_t port)
 {
     sockaddr_in result;
     memset(&result, 0, sizeof(result));
-    result.sin_addr.S_un.S_addr = address;
+
+    result.sin_family = AF_INET;
     result.sin_port = htons(port);
+    result.sin_addr.S_un.S_addr = address;
+
     return result;
 }
 
@@ -96,8 +103,11 @@ sockaddr_in6 createAddressIPv6(const UdcAddressIPv6& address, uint16_t port)
 {
     sockaddr_in6 result;
     memset(&result, 0, sizeof(result));
-    memcpy(result.sin6_addr.u.Byte, address.segments, sizeof(address.segments));
+
+    result.sin6_family = AF_INET6;
     result.sin6_port = htons(port);
+    memcpy(result.sin6_addr.u.Byte, address.segments, sizeof(address.segments));
+
     return result;
 }
 
@@ -105,8 +115,11 @@ sockaddr_in6 createAddressIPv6(const in6_addr& address, uint16_t port)
 {
     sockaddr_in6 result;
     memset(&result, 0, sizeof(result));
-    result.sin6_addr = address;
+
+    result.sin6_family = AF_INET6;
     result.sin6_port = htons(port);
+    result.sin6_addr = address;
+
     return result;
 }
 
@@ -166,7 +179,7 @@ int32_t receivePacketIPv4(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressI
 
     convertToIPv4(ip.sin_addr, sourceIP);
 
-    assert(result <= tmpBuffer.size());
+    assert(result <= (int)tmpBuffer.size());
     data.resize(result);
     memcpy(data.data(), tmpBuffer.data(), result);
 
@@ -219,7 +232,7 @@ int32_t receivePacketIPv6(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressI
 
     convertToIPv6(ip.sin6_addr, sourceIP);
 
-    assert(result <= tmpBuffer.size());
+    assert(result <= (int)tmpBuffer.size());
     data.resize(result);
     memcpy(data.data(), tmpBuffer.data(), result);
 

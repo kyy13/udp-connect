@@ -10,7 +10,7 @@
 
 int main()
 {
-    const uint8_t udpMessage[] = {'H', 'E', 'L', 'L', 'O', '!'};
+    std::vector<uint8_t> udpMessage = {'H', 'E', 'L', 'L', 'O', '!'};
 
     UdcAddressIPv4 loopBack {};
     if (!udcStringToIPv4("127.0.0.1", &loopBack))
@@ -19,7 +19,7 @@ int main()
         return -1;
     }
 
-    UdcSocketReceiver usr(100);
+    UdcSocketReceiver usr;
     UdcSocketSender uss;
 
     // Connect sender
@@ -30,7 +30,7 @@ int main()
         return -1;
     }
 
-    if (!uss.send(udpMessage, sizeof(udpMessage)))
+    if (!uss.send(udpMessage))
     {
         std::cout << "failed to send\n";
         return -1;
@@ -44,7 +44,7 @@ int main()
         return -1;
     }
 
-    if (!uss.send(udpMessage, sizeof(udpMessage)))
+    if (!uss.send(udpMessage))
     {
         std::cout << "failed to send\n";
         return -1;
@@ -60,7 +60,7 @@ int main()
         return -1;
     }
 
-    if (!uss.send(udpMessage, sizeof(udpMessage)))
+    if (!uss.send(udpMessage))
     {
         std::cout << "failed to send\n";
         return -1;
@@ -68,7 +68,7 @@ int main()
 
     // Connect receiver
 
-    if (!usr.connect(7777))
+    if (!usr.bind(7777, 7776))
     {
         std::cout << "failed to connect socket receiver\n";
         return -1;
@@ -77,25 +77,22 @@ int main()
     // Test sending and receiving many
 
     UdcAddressFamily family;
-    UdcAddressIPv4 ipv4;
-    UdcAddressIPv6 ipv6;
-    UdcSocketReceiver::Buffer message;
-
-    size_t messageSize;
+    UdcAddress address;
+    std::vector<uint8_t> message;
 
     bool received = false;
 
     for (size_t i = 0; i != 100; ++i)
     {
-        if (!uss.send(udpMessage, sizeof(udpMessage)))
+        if (!uss.send(udpMessage))
         {
             std::cout << "failed to send.\n";
             return -1;
         }
 
-        if (usr.receive(family, ipv4, ipv6, message, messageSize))
+        if (usr.receive(family, address, message))
         {
-            if (std::memcmp(message, udpMessage, sizeof(udpMessage)) != 0)
+            if (!std::equal(udpMessage.begin(), udpMessage.end(), message.begin()))
             {
                 std::cout << "packet received incorrectly.\n";
                 return -1;
