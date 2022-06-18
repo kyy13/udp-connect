@@ -12,19 +12,14 @@ int main()
 {
     std::vector<uint8_t> udpMessage = {'H', 'E', 'L', 'L', 'O', '!'};
 
-    UdcAddressIPv4 loopBack {};
-    if (!udcStringToIPv4("127.0.0.1", &loopBack))
-    {
-        std::cout << "failed to convert ip string\n";
-        return -1;
-    }
+    std::string loopBackIp = "127.0.0.1";
 
     UdcSocketReceiver usr;
     UdcSocketSender uss;
 
     // Connect sender
 
-    if (!uss.connect(loopBack, 1234))
+    if (!uss.connect(loopBackIp, 1234))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -38,7 +33,7 @@ int main()
 
     // Connect to a different port (without calling disconnect)
 
-    if (!uss.connect(loopBack, 4321))
+    if (!uss.connect(loopBackIp, 4321))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -54,7 +49,7 @@ int main()
 
     uss.disconnect();
 
-    if (!uss.connect(loopBack, 7777))
+    if (!uss.connect(loopBackIp, 7777))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;

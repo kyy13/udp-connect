@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <string>
 
 #ifdef OS_WINDOWS
 #include <winsock2.h>
@@ -33,6 +34,10 @@ public:
     // Returns true if the socket is connected
     [[nodiscard]]
     bool isConnected() const;
+
+    // Connect to a remote node with a String
+    [[nodiscard]]
+    bool remoteConnect(const std::string& remoteIp, uint16_t remotePort);
 
     // Connect to a remote node with IPv4
     // returns true on success

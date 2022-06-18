@@ -7,16 +7,23 @@
 #include "udp_connect.h"
 
 #include <vector>
+#include <string>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+// Starts winsock API
+// reference counted, so it will only be started when startWSA() call count = 0
+bool startWSA();
+
+// Stop winsock API
+// reference counted, so it will be stopped when startWSA() call count == stopWSA() call count
+void stopWSA();
+
 // Creates a socket
 // returns INVALID_SOCKET on failure
-// (handles starting WSA)
 SOCKET createSocket(int protocol);
 
 // Deletes a socket
-// (handles cleaning up WSA)
 void deleteSocket(SOCKET& s);
 
 // Binds a socket to an IPv4 address
@@ -43,17 +50,17 @@ sockaddr_in createAddressIPv4(const UdcAddressIPv4& address, uint16_t port);
 // Create a sockaddr_in struct from an IPv4 address and port
 sockaddr_in createAddressIPv4(u_long address, uint16_t port);
 
-// Convert an in_addr into an IPv4
-void convertToIPv4(const in_addr& src, UdcAddressIPv4& dst);
-
 // Create a sockaddr_in6 struct from an IPv6 address and port
 sockaddr_in6 createAddressIPv6(const UdcAddressIPv6& address, uint16_t port);
 
 // Create a sockaddr_in6 struct from an IPv6 address and port
 sockaddr_in6 createAddressIPv6(const in6_addr& address, uint16_t port);
 
+// Convert an in_addr into an IPv4
+void convertInaddrToIPv4(const in_addr& src, UdcAddressIPv4& dst);
+
 // Convert an in6_addr into an IPv6
-void convertToIPv6(const in6_addr& src, UdcAddressIPv6& dst);
+void convertInaddrToIPv6(const in6_addr& src, UdcAddressIPv6& dst);
 
 // Send a packet
 bool sendPacket(SOCKET s, const std::vector<uint8_t>& data);

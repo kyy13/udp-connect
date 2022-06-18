@@ -5,26 +5,20 @@
 
 #include <cassert>
 
-SOCKET createSocket(int protocol)
+bool startWSA()
 {
     WSAData wsaData;
+    return WSAStartup(MAKEWORD(2, 2), &wsaData) == NO_ERROR;
+}
 
-    // Start WSA v2.2
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR)
-    {
-        return INVALID_SOCKET;
-    }
+void stopWSA()
+{
+    WSACleanup();
+}
 
-    // Create socket
-    SOCKET s = socket(protocol, SOCK_DGRAM, IPPROTO_UDP);
-
-    // If WSA was started and socket creation failed, then cleanup WSA
-    if (s == INVALID_SOCKET)
-    {
-        WSACleanup();
-    }
-
-    return s;
+SOCKET createSocket(int protocol)
+{
+    return socket(protocol, SOCK_DGRAM, IPPROTO_UDP);
 }
 
 void deleteSocket(SOCKET& s)
@@ -33,7 +27,6 @@ void deleteSocket(SOCKET& s)
     {
         closesocket(s);
         s = INVALID_SOCKET;
-        WSACleanup();
     }
 }
 
@@ -94,7 +87,7 @@ sockaddr_in createAddressIPv4(u_long address, uint16_t port)
     return result;
 }
 
-void convertToIPv4(const in_addr& src, UdcAddressIPv4& dst)
+void convertInaddrToIPv4(const in_addr& src, UdcAddressIPv4& dst)
 {
     memcpy(dst.octets, &src.S_un.S_un_b.s_b1, sizeof(dst.octets));
 }
@@ -123,7 +116,7 @@ sockaddr_in6 createAddressIPv6(const in6_addr& address, uint16_t port)
     return result;
 }
 
-void convertToIPv6(const in6_addr& src, UdcAddressIPv6& dst)
+void convertInaddrToIPv6(const in6_addr& src, UdcAddressIPv6& dst)
 {
     memcpy(dst.segments, src.u.Byte, sizeof(dst.segments));
 }
@@ -159,7 +152,7 @@ int32_t receivePacketIPv4(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressI
         // Message was too long
         if (error == WSAEMSGSIZE)
         {
-            convertToIPv4(ip.sin_addr, sourceIP);
+            convertInaddrToIPv4(ip.sin_addr, sourceIP);
 
             data.resize(tmpBuffer.size());
             memcpy(data.data(), tmpBuffer.data(), tmpBuffer.size());
@@ -177,7 +170,7 @@ int32_t receivePacketIPv4(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressI
         return -2;
     }
 
-    convertToIPv4(ip.sin_addr, sourceIP);
+    convertInaddrToIPv4(ip.sin_addr, sourceIP);
 
     assert(result <= (int)tmpBuffer.size());
     data.resize(result);
@@ -212,7 +205,7 @@ int32_t receivePacketIPv6(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressI
         // Message was too long
         if (error == WSAEMSGSIZE)
         {
-            convertToIPv6(ip.sin6_addr, sourceIP);
+            convertInaddrToIPv6(ip.sin6_addr, sourceIP);
 
             data.resize(tmpBuffer.size());
             memcpy(data.data(), tmpBuffer.data(), tmpBuffer.size());
@@ -230,7 +223,7 @@ int32_t receivePacketIPv6(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressI
         return -2;
     }
 
-    convertToIPv6(ip.sin6_addr, sourceIP);
+    convertInaddrToIPv6(ip.sin6_addr, sourceIP);
 
     assert(result <= (int)tmpBuffer.size());
     data.resize(result);

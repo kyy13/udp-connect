@@ -21,12 +21,6 @@ extern "C"
         UDC_IPV6,
     };
 
-    // A generic address buffer that can be converted to an IPv4 or IPv6 address
-//    struct UdcAddress
-//    {
-//        uint8_t bytes[16];
-//    };
-
     // IPv4 Address
     // Stored as 4 octets in the format [0].[1].[2].[3]
     struct UdcAddressIPv4
@@ -112,19 +106,6 @@ extern "C"
 
     // Get the ping (in ms) of the client
     uint32_t udcGetClientPing(UdcClient* client);
-
-    // Convert an IP string to an IP
-    // returns true on success
-    bool udcStringToIPv4(const char* ipString, UdcAddressIPv4* ipAddress);
-    bool udcStringToIPv6(const char* ipString, UdcAddressIPv6* ipAddress);
-
-    // Convert an IP address to an IP string
-    // Returns the length of the resulting IP string
-    // If the method is called with ipString = nullptr,
-    // then it will still return the resulting length,
-    // but it will not write to str
-    uint32_t udcIPv4ToString(const UdcAddressIPv4* ipAddress, char* ipString);
-    uint32_t udcIPv6ToString(const UdcAddressIPv6* ipAddress, char* ipString);
 }
 
 #endif
