@@ -29,13 +29,17 @@ bool UdcSocket::isConnected() const
     return m_socket != INVALID_SOCKET;
 }
 
-bool UdcSocket::remoteConnect(const std::string& remoteIp, uint16_t remotePort)
+bool UdcSocket::stringToIPv6(
+    const std::string& nodeName,
+    const std::string& serviceName,
+    UdcAddressIPv6& dstAddress,
+    uint16_t& dstPort)
 {
     // Setup address hints
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
 
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = AF_INET6;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = IPPROTO_UDP;
 
@@ -43,8 +47,52 @@ bool UdcSocket::remoteConnect(const std::string& remoteIp, uint16_t remotePort)
     addrinfo* addressList = nullptr;
 
     // Get address info
-    std::string portString = std::to_string(remotePort);
-    if (getaddrinfo(remoteIp.c_str(), portString.c_str(), &hints, &addressList) != 0)
+    if (getaddrinfo(nodeName.c_str(), serviceName.c_str(), &hints, &addressList) != 0)
+    {
+        return false;
+    }
+
+    // Iterate over result linked list
+    for(addrinfo* address = addressList; address != nullptr; address = address->ai_next)
+    {
+        if (address->ai_socktype != SOCK_DGRAM || address->ai_protocol != IPPROTO_UDP)
+        {
+            continue;
+        }
+
+        if (address->ai_family == AF_INET6)
+        {
+            auto* sa = reinterpret_cast<sockaddr_in6*>(address->ai_addr);
+
+            dstPort = ntohs(sa->sin6_port);
+            convertInaddrToIPv6(sa->sin6_addr, dstAddress);
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool UdcSocket::stringToIPv4(
+    const std::string& nodeName,
+    const std::string& serviceName,
+    UdcAddressIPv4& dstAddress,
+    uint16_t& dstPort)
+{
+    // Setup address hints
+    addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_protocol = IPPROTO_UDP;
+
+    // Setup linked-list of address results
+    addrinfo* addressList = nullptr;
+
+    // Get address info
+    if (getaddrinfo(nodeName.c_str(), serviceName.c_str(), &hints, &addressList) != 0)
     {
         return false;
     }
@@ -59,34 +107,40 @@ bool UdcSocket::remoteConnect(const std::string& remoteIp, uint16_t remotePort)
 
         if (address->ai_family == AF_INET)
         {
-            UdcAddressIPv4 ip;
-            in_addr src_ip = reinterpret_cast<sockaddr_in*>(address->ai_addr)->sin_addr;
+            auto* sa = reinterpret_cast<sockaddr_in*>(address->ai_addr);
 
-            convertInaddrToIPv4(src_ip, ip);
+            dstPort = ntohs(sa->sin_port);
+            convertInaddrToIPv4(sa->sin_addr, dstAddress);
 
-            if (remoteConnect(ip, remotePort))
-            {
-                return true;
-            }
-        }
-        else if (address->ai_family == AF_INET6)
-        {
-            UdcAddressIPv6 ip;
-            in6_addr src_ip = reinterpret_cast<sockaddr_in6*>(address->ai_addr)->sin6_addr;
-
-            convertInaddrToIPv6(src_ip, ip);
-
-            if (remoteConnect(ip, remotePort))
-            {
-                return true;
-            }
+            return true;
         }
     }
 
     return false;
 }
 
-bool UdcSocket::remoteConnect(const UdcAddressIPv4& remoteIp, uint16_t remotePort)
+bool UdcSocket::remoteConnect(const std::string& nodeName, const std::string& serviceName)
+{
+    UdcAddressIPv6 addressIPv6;
+    uint16_t port;
+
+    if (stringToIPv6(nodeName, serviceName, addressIPv6, port) &&
+        remoteConnectIPv6(addressIPv6, port))
+    {
+        return true;
+    }
+
+    UdcAddressIPv4 addressIPv4;
+    if (stringToIPv4(nodeName, serviceName, addressIPv4, port) &&
+        remoteConnectIPv4(addressIPv4, port))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool UdcSocket::remoteConnectIPv4(const UdcAddressIPv4& remoteIp, uint16_t remotePort)
 {
     SOCKET s = createSocket(AF_INET);
 
@@ -111,7 +165,7 @@ bool UdcSocket::remoteConnect(const UdcAddressIPv4& remoteIp, uint16_t remotePor
     return true;
 }
 
-bool UdcSocket::remoteConnect(const UdcAddressIPv6& remoteIp, uint16_t remotePort)
+bool UdcSocket::remoteConnectIPv6(const UdcAddressIPv6& remoteIp, uint16_t remotePort)
 {
     SOCKET s = createSocket(AF_INET6);
 
@@ -210,7 +264,7 @@ bool UdcSocket::send(const std::vector<uint8_t>& data) const
     return sendPacket(m_socket, data);
 }
 
-int32_t UdcSocket::receive(UdcAddressIPv4& sourceIP, std::vector<uint8_t>& data, size_t maxSize) const
+int32_t UdcSocket::receiveIPv4(UdcAddressIPv4& sourceIP, std::vector<uint8_t>& data, size_t maxSize) const
 {
     if (m_socket == INVALID_SOCKET)
     {
@@ -221,7 +275,7 @@ int32_t UdcSocket::receive(UdcAddressIPv4& sourceIP, std::vector<uint8_t>& data,
     return receivePacketIPv4(m_socket, m_buffer, sourceIP, data);
 }
 
-int32_t UdcSocket::receive(UdcAddressIPv6& sourceIP, std::vector<uint8_t>& data, size_t maxSize) const
+int32_t UdcSocket::receiveIPv6(UdcAddressIPv6& sourceIP, std::vector<uint8_t>& data, size_t maxSize) const
 {
     if (m_socket == INVALID_SOCKET)
     {

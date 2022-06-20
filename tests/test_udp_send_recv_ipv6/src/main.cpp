@@ -19,7 +19,7 @@ int main()
 
     // Connect sender
 
-    if (!uss.connect(loopBackIp, 1234))
+    if (!uss.connect(loopBackIp, "1234"))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -33,7 +33,7 @@ int main()
 
     // Connect to a different port (without calling disconnect)
 
-    if (!uss.connect(loopBackIp, 4321))
+    if (!uss.connect(loopBackIp, "4321"))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -49,7 +49,7 @@ int main()
 
     uss.disconnect();
 
-    if (!uss.connect(loopBackIp, 7777))
+    if (!uss.connect(loopBackIp, "7777"))
     {
         std::cout << "failed to connect socket sender\n";
         return -1;
@@ -63,7 +63,7 @@ int main()
 
     // Connect receiver
 
-    if (!usr.bind(7777, 7776))
+    if (!usr.bind(7777, 7778))
     {
         std::cout << "failed to connect socket receiver\n";
         return -1;
@@ -71,8 +71,8 @@ int main()
 
     // Test sending and receiving many
 
-    UdcAddressFamily family;
-    UdcAddress address;
+    UdcAddressFamily addressFamily;
+    UdcSocketReceiver::UdcAddress address;
     std::vector<uint8_t> message;
 
     bool received = false;
@@ -85,7 +85,7 @@ int main()
             return -1;
         }
 
-        if (usr.receive(family, address, message))
+        if (usr.receive(addressFamily, address, message))
         {
             if (!std::equal(udpMessage.begin(), udpMessage.end(), message.begin()))
             {

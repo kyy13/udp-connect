@@ -6,17 +6,17 @@
 
 #include "UdcSocket.h"
 
-union UdcAddress
-{
-    UdcAddressIPv4 ipv4;
-    UdcAddressIPv6 ipv6;
-};
-
 // UdcSocketReceiver
 // Manages receiving UDP packets on a local port
 class UdcSocketReceiver
 {
 public:
+
+    union UdcAddress
+    {
+        UdcAddressIPv4 ipv4;
+        UdcAddressIPv6 ipv6;
+    };
 
     // Attempt to bind primaryPort as a dual-stack IPv6 port that's capable of receiving IPv4 and IPv6
     // If dual-stack is not available, then binds an IPv6 port on primaryPort and an IPv4 port on backupPort
@@ -41,8 +41,8 @@ public:
     bool isConnected() const;
 
 protected:
-    UdcSocket m_primarySocket;
-    UdcSocket m_backupSocket;
+    UdcSocket m_primarySocketIPv6;
+    UdcSocket m_backupSocketIPv4;
 };
 
 #endif

@@ -16,13 +16,13 @@ public:
     // Connect can be called multiple times without calling disconnect()
     // in order to change the ip/port.
     [[nodiscard]]
-    bool connect(const std::string& remoteIp, uint16_t remotePort);
+    bool connect(const std::string& nodeName, const std::string& serviceName);
 
     [[nodiscard]]
-    bool connect(const UdcAddressIPv4& remoteIp, uint16_t remotePort);
+    bool connectIPv4(const UdcAddressIPv4& remoteIp, uint16_t remotePort);
 
     [[nodiscard]]
-    bool connect(const UdcAddressIPv6& remoteIp, uint16_t remotePort);
+    bool connectIPv6(const UdcAddressIPv6& remoteIp, uint16_t remotePort);
 
     // Send a message to connected port
     [[nodiscard]]

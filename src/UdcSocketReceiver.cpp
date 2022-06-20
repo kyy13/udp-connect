@@ -6,21 +6,21 @@
 bool UdcSocketReceiver::bind(uint16_t primaryPortIPv6, uint16_t backupPortIPv4)
 {
     // Disconnected if already connected
-    if (m_primarySocket.isConnected())
+    if (m_primarySocketIPv6.isConnected())
     {
-        m_primarySocket.disconnect();
-        m_backupSocket.disconnect();
+        m_primarySocketIPv6.disconnect();
+        m_backupSocketIPv4.disconnect();
     }
 
     // Attempt to bind IPv6 port with dual stack IPv4 support
-    if (m_primarySocket.localBindIPv6(primaryPortIPv6, true))
+    if (m_primarySocketIPv6.localBindIPv6(primaryPortIPv6, true))
     {
         return true;
     }
 
     // Attempt to bind IPv6 on primary socket and IPv4 on secondary socket
-    if (m_primarySocket.localBindIPv6(primaryPortIPv6, false) &&
-        m_backupSocket.localBindIPv4(backupPortIPv4))
+    if (m_primarySocketIPv6.localBindIPv6(primaryPortIPv6, false) &&
+        m_backupSocketIPv4.localBindIPv4(backupPortIPv4))
     {
         return true;
     }
@@ -35,7 +35,7 @@ bool UdcSocketReceiver::receive(
     std::vector<uint8_t>& data)
 {
     // Not connected
-    if (!m_primarySocket.isConnected())
+    if (!m_primarySocketIPv6.isConnected())
     {
         return false;
     }
@@ -43,16 +43,16 @@ bool UdcSocketReceiver::receive(
     int32_t result;
 
     // IPv6 connected with dual stack IPv4 support
-    if (!m_backupSocket.isConnected())
+    if (!m_backupSocketIPv4.isConnected())
     {
         addressFamily = UDC_IPV6;
-        result = m_primarySocket.receive(address.ipv6, data);
+        result = m_primarySocketIPv6.receiveIPv6(address.ipv6, data);
         return (result == 1);
     }
 
     // IPv6 and IPv4 connected separately
     addressFamily = UDC_IPV6;
-    result = m_primarySocket.receive(address.ipv6, data);
+    result = m_primarySocketIPv6.receiveIPv6(address.ipv6, data);
 
     if (result == 1)
     {
@@ -60,7 +60,7 @@ bool UdcSocketReceiver::receive(
     }
 
     addressFamily = UDC_IPV4;
-    result = m_backupSocket.receive(address.ipv4, data);
+    result = m_backupSocketIPv4.receiveIPv4(address.ipv4, data);
 
     return (result == 1);
 }
@@ -68,14 +68,14 @@ bool UdcSocketReceiver::receive(
 void UdcSocketReceiver::disconnect()
 {
     // Disconnected if already connected
-    if (m_primarySocket.isConnected())
+    if (m_primarySocketIPv6.isConnected())
     {
-        m_primarySocket.disconnect();
-        m_backupSocket.disconnect();
+        m_primarySocketIPv6.disconnect();
+        m_backupSocketIPv4.disconnect();
     }
 }
 
 bool UdcSocketReceiver::isConnected() const
 {
-    return m_primarySocket.isConnected();
+    return m_primarySocketIPv6.isConnected();
 }

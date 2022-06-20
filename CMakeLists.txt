@@ -13,6 +13,7 @@ set(
     src/udp_connect.cpp
     src/UdcSocketSender.cpp
     src/UdcSocketReceiver.cpp
+    src/UdcMessage.cpp
 )
 
 IF(WIN32)

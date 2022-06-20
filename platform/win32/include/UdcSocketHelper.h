@@ -5,6 +5,7 @@
 #define UDC_WIN32_SOCKET_HELPER_H
 
 #include "udp_connect.h"
+#include "UdcTypes.h"
 
 #include <vector>
 #include <string>
@@ -41,7 +42,7 @@ bool connectSocket(SOCKET s, sockaddr_in6 address);
 // Set socket non-blocking option (true = not-blocking)
 bool setSocketOptionNonBlocking(SOCKET socket, bool noBlock);
 
-// Set an IPv6 socket to receive IPv6 only
+// Set an IPv6 socket to receiveIPv4 IPv6 only
 bool setSocketOptionIpv6Only(SOCKET socket, bool ipv6Only);
 
 // Create a sockaddr_in struct from an IPv4 address and port
@@ -68,7 +69,7 @@ bool sendPacket(SOCKET s, const std::vector<uint8_t>& data);
 // Receive a packet on an IPv4 port
 // tmpBuffer is a buffer for holding temporary packet memory with size = max size of received packet
 // returns 1 on success
-// returns 0 if there are no messages left to receive
+// returns 0 if there are no messages left to receiveIPv4
 // returns -1 if the message was truncated due to size
 // returns -2 if there was an error such as socket being closed unexpectedly
 int32_t receivePacketIPv4(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressIPv4& sourceIP, std::vector<uint8_t>& data);
@@ -76,7 +77,7 @@ int32_t receivePacketIPv4(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressI
 // Receive a packet on an IPv6 port
 // tmpBuffer is a buffer for holding temporary packet memory with size = max size of received packet
 // returns 1 on success
-// returns 0 if there are no messages left to receive
+// returns 0 if there are no messages left to receiveIPv4
 // returns -1 if the message was truncated due to size
 // returns -2 if there was an error such as socket being closed unexpectedly
 int32_t receivePacketIPv6(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressIPv6& sourceIP, std::vector<uint8_t>& data);
