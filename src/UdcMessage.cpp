@@ -7,24 +7,57 @@
 #include <cstring>
 #include <winsock2.h>
 
-void udcGenerateHeader(std::vector<uint8_t>& msg, const UdcMsgHeader& header)
+void udcGenerateHeader(std::vector<uint8_t>& msg, UdcSignature signature, UdcMessageId messageId)
 {
-    assert(msg.size() >= 9);
+    assert(msg.size() >= UDC_MSG_HEADER_SIZE);
 
-    uint32_t sig = htonl(header.signature);
-    uint32_t time = htonl(header.timestamp);
+    signature = htonl(signature);
 
-    memcpy(&msg[0], &sig, sizeof(sig));
-    memcpy(&msg[4], &time, sizeof(time));
-    memcpy(&msg[8], &header.messageId, sizeof(header.messageId));
+    memcpy(msg.data() + 0, &signature, sizeof(signature));
+    memcpy(msg.data() + 4, &messageId, sizeof(messageId));
 }
 
-void udcGenerateMsg(std::vector<uint8_t>& msg, const UdcMsgHeader& header, const UdcMsgConnectionRequest& body)
+bool udcReadHeader(const std::vector<uint8_t>& src, uint32_t signature, UdcMessageId& messageId)
 {
+    if (src.size() < UDC_MSG_HEADER_SIZE)
+    {
+        return false;
+    }
 
+    uint32_t sigBytes;
+
+    memcpy(&sigBytes, src.data() + 0, sizeof(sigBytes));
+    memcpy(&messageId, src.data() + 4, sizeof(messageId));
+
+    return htonl(sigBytes) == signature;
 }
 
-void udcReadMessage(uint32_t sig, const std::vector<uint8_t>& str, UdcMsgHeader& header, UdcMsgConnectionRequest& msg)
+void udcGenerateMessage(std::vector<uint8_t>& msg, const UdcMsgConnection& body, UdcSignature signature, UdcMessageId messageId)
 {
+    msg.resize(UDC_MSG_CONNECTION_SIZE);
+    udcGenerateHeader(msg, signature, messageId);
 
+    uint8_t* ptr = msg.data() + UDC_MSG_HEADER_SIZE;
+
+    memcpy(ptr, &body.clientId, sizeof(UdcDeviceId));
+    ptr += sizeof(UdcDeviceId);
+
+    memcpy(ptr, &body.serverId, sizeof(UdcDeviceId));
+}
+
+bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgConnection& dst)
+{
+    if (src.size() != UDC_MSG_CONNECTION_SIZE)
+    {
+        return false;
+    }
+
+    const uint8_t* ptr = src.data() + UDC_MSG_HEADER_SIZE;
+
+    memcpy(&dst.clientId, ptr, sizeof(UdcDeviceId));
+    ptr += sizeof(UdcDeviceId);
+
+    memcpy(&dst.serverId, ptr, sizeof(UdcDeviceId));
+
+    return true;
 }

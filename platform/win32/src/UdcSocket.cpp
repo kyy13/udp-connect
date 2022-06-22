@@ -12,7 +12,7 @@ std::vector<uint8_t> UdcSocket::m_buffer;
 UdcSocket::UdcSocket()
     : m_socket(INVALID_SOCKET)
 {
-    if (!startWSA())
+    if (!WinSock::startWSA())
     {
         throw std::runtime_error("Could not start Winsock DLL!");
     }
@@ -20,8 +20,8 @@ UdcSocket::UdcSocket()
 
 UdcSocket::~UdcSocket()
 {
-    deleteSocket(m_socket);
-    stopWSA();
+    WinSock::deleteSocket(m_socket);
+    WinSock::stopWSA();
 }
 
 bool UdcSocket::isConnected() const
@@ -35,6 +35,11 @@ bool UdcSocket::stringToIPv6(
     UdcAddressIPv6& dstAddress,
     uint16_t& dstPort)
 {
+    if (!WinSock::startWSA())
+    {
+        return false;
+    }
+
     // Setup address hints
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -49,6 +54,7 @@ bool UdcSocket::stringToIPv6(
     // Get address info
     if (getaddrinfo(nodeName.c_str(), serviceName.c_str(), &hints, &addressList) != 0)
     {
+        WinSock::stopWSA();
         return false;
     }
 
@@ -65,12 +71,14 @@ bool UdcSocket::stringToIPv6(
             auto* sa = reinterpret_cast<sockaddr_in6*>(address->ai_addr);
 
             dstPort = ntohs(sa->sin6_port);
-            convertInaddrToIPv6(sa->sin6_addr, dstAddress);
+            WinSock::convertInaddrToIPv6(sa->sin6_addr, dstAddress);
 
+            WinSock::stopWSA();
             return true;
         }
     }
 
+    WinSock::stopWSA();
     return false;
 }
 
@@ -80,6 +88,11 @@ bool UdcSocket::stringToIPv4(
     UdcAddressIPv4& dstAddress,
     uint16_t& dstPort)
 {
+    if (!WinSock::startWSA())
+    {
+        return false;
+    }
+
     // Setup address hints
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -92,8 +105,10 @@ bool UdcSocket::stringToIPv4(
     addrinfo* addressList = nullptr;
 
     // Get address info
-    if (getaddrinfo(nodeName.c_str(), serviceName.c_str(), &hints, &addressList) != 0)
+    int result = getaddrinfo(nodeName.c_str(), serviceName.c_str(), &hints, &addressList);
+    if (result != 0)
     {
+        WinSock::stopWSA();
         return false;
     }
 
@@ -110,104 +125,63 @@ bool UdcSocket::stringToIPv4(
             auto* sa = reinterpret_cast<sockaddr_in*>(address->ai_addr);
 
             dstPort = ntohs(sa->sin_port);
-            convertInaddrToIPv4(sa->sin_addr, dstAddress);
+            WinSock::convertInaddrToIPv4(sa->sin_addr, dstAddress);
 
+            WinSock::stopWSA();
             return true;
         }
     }
 
+    WinSock::stopWSA();
     return false;
 }
 
-bool UdcSocket::remoteConnect(const std::string& nodeName, const std::string& serviceName)
+bool UdcSocket::remoteConnectIPv4()
 {
-    UdcAddressIPv6 addressIPv6;
-    uint16_t port;
-
-    if (stringToIPv6(nodeName, serviceName, addressIPv6, port) &&
-        remoteConnectIPv6(addressIPv6, port))
-    {
-        return true;
-    }
-
-    UdcAddressIPv4 addressIPv4;
-    if (stringToIPv4(nodeName, serviceName, addressIPv4, port) &&
-        remoteConnectIPv4(addressIPv4, port))
-    {
-        return true;
-    }
-
-    return false;
-}
-
-bool UdcSocket::remoteConnectIPv4(const UdcAddressIPv4& remoteIp, uint16_t remotePort)
-{
-    SOCKET s = createSocket(AF_INET);
+    SOCKET s = WinSock::createSocket(AF_INET);
 
     if (s == INVALID_SOCKET)
     {
         return false;
     }
 
-    if (!setSocketOptionNonBlocking(s, true))
-    {
-        deleteSocket(s);
-        return false;
-    }
-
-    if (!connectSocket(s, createAddressIPv4(remoteIp, remotePort)))
-    {
-        deleteSocket(s);
-        return false;
-    }
-
     m_socket = s;
+
     return true;
 }
 
-bool UdcSocket::remoteConnectIPv6(const UdcAddressIPv6& remoteIp, uint16_t remotePort)
+bool UdcSocket::remoteConnectIPv6()
 {
-    SOCKET s = createSocket(AF_INET6);
+    SOCKET s = WinSock::createSocket(AF_INET6);
 
     if (s == INVALID_SOCKET)
     {
         return false;
     }
 
-    if (!setSocketOptionNonBlocking(s, true))
-    {
-        deleteSocket(s);
-        return false;
-    }
-
-    if (!connectSocket(s, createAddressIPv6(remoteIp, remotePort)))
-    {
-        deleteSocket(s);
-        return false;
-    }
-
     m_socket = s;
+
     return true;
 }
 
 bool UdcSocket::localBindIPv4(uint16_t localPort)
 {
-    SOCKET s = createSocket(AF_INET);
+    SOCKET s = WinSock::createSocket(AF_INET);
 
     if (s == INVALID_SOCKET)
     {
         return false;
     }
 
-    if (!setSocketOptionNonBlocking(s, true))
+    if (!WinSock::setSocketOptionNonBlocking(s, true))
     {
-        deleteSocket(s);
+        WinSock::deleteSocket(s);
         return false;
     }
 
-    if (!bindSocket(s, createAddressIPv4(INADDR_ANY, localPort)))
+    if (!WinSock::bindSocketIPv4(s, WinSock::createAddressIPv4(INADDR_ANY, localPort)))
     {
-        deleteSocket(s);
+        WinSock::deleteSocket(s);
         return false;
     }
 
@@ -217,31 +191,31 @@ bool UdcSocket::localBindIPv4(uint16_t localPort)
 
 bool UdcSocket::localBindIPv6(uint16_t localPort, bool allowIPv4)
 {
-    SOCKET s = createSocket(AF_INET6);
+    SOCKET s = WinSock::createSocket(AF_INET6);
 
     if (s == INVALID_SOCKET)
     {
         return false;
     }
 
-    if (!setSocketOptionNonBlocking(s, true))
+    if (!WinSock::setSocketOptionNonBlocking(s, true))
     {
-        deleteSocket(s);
+        WinSock::deleteSocket(s);
         return false;
     }
 
     if (allowIPv4)
     {
-        if (!setSocketOptionIpv6Only(s, false))
+        if (!WinSock::setSocketOptionIpv6Only(s, false))
         {
-            deleteSocket(s);
+            WinSock::deleteSocket(s);
             return false;
         }
     }
 
-    if (!bindSocket(s, createAddressIPv6(IN6ADDR_ANY_INIT, localPort)))
+    if (!WinSock::bindSocketIPv6(s, WinSock::createAddressIPv6(IN6ADDR_ANY_INIT, localPort)))
     {
-        deleteSocket(s);
+        WinSock::deleteSocket(s);
         return false;
     }
 
@@ -251,20 +225,30 @@ bool UdcSocket::localBindIPv6(uint16_t localPort, bool allowIPv4)
 
 void UdcSocket::disconnect()
 {
-    deleteSocket(m_socket);
+    WinSock::deleteSocket(m_socket);
 }
 
-bool UdcSocket::send(const std::vector<uint8_t>& data) const
+bool UdcSocket::sendIPv4(const UdcAddressIPv4& address, uint16_t port, const std::vector<uint8_t>& data) const
 {
     if (m_socket == INVALID_SOCKET)
     {
         return false;
     }
 
-    return sendPacket(m_socket, data);
+    return WinSock::sendPacketIPv4(m_socket, WinSock::createAddressIPv4(address, port), data);
 }
 
-int32_t UdcSocket::receiveIPv4(UdcAddressIPv4& sourceIP, std::vector<uint8_t>& data, size_t maxSize) const
+bool UdcSocket::sendIPv6(const UdcAddressIPv6& address, uint16_t port, const std::vector<uint8_t>& data) const
+{
+    if (m_socket == INVALID_SOCKET)
+    {
+        return false;
+    }
+
+    return WinSock::sendPacketIPv6(m_socket, WinSock::createAddressIPv6(address, port), data);
+}
+
+int32_t UdcSocket::receiveIPv4(UdcAddressIPv4& sourceIP, uint16_t& port, std::vector<uint8_t>& data, size_t maxSize) const
 {
     if (m_socket == INVALID_SOCKET)
     {
@@ -272,10 +256,10 @@ int32_t UdcSocket::receiveIPv4(UdcAddressIPv4& sourceIP, std::vector<uint8_t>& d
     }
 
     m_buffer.resize(maxSize);
-    return receivePacketIPv4(m_socket, m_buffer, sourceIP, data);
+    return WinSock::receivePacketIPv4(m_socket, m_buffer, sourceIP, port, data);
 }
 
-int32_t UdcSocket::receiveIPv6(UdcAddressIPv6& sourceIP, std::vector<uint8_t>& data, size_t maxSize) const
+int32_t UdcSocket::receiveIPv6(UdcAddressIPv6& sourceIP, uint16_t& port, std::vector<uint8_t>& data, size_t maxSize) const
 {
     if (m_socket == INVALID_SOCKET)
     {
@@ -283,5 +267,5 @@ int32_t UdcSocket::receiveIPv6(UdcAddressIPv6& sourceIP, std::vector<uint8_t>& d
     }
 
     m_buffer.resize(maxSize);
-    return receivePacketIPv6(m_socket, m_buffer, sourceIP, data);
+    return WinSock::receivePacketIPv6(m_socket, m_buffer, sourceIP, port, data);
 }

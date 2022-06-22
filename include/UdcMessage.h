@@ -4,31 +4,40 @@
 #ifndef UDC_MESSAGE_H
 #define UDC_MESSAGE_H
 
+#include "udp_connect.h"
+
 #include <cstdint>
 #include <vector>
 
 enum UdcMessageId : uint8_t
 {
     UDC_MSG_CONNECTION_REQUEST,
+    UDC_MSG_CONNECTION_HANDSHAKE,
     UDC_MSG_EXTERNAL,
 };
 
-struct UdcMsgHeader
+struct UdcMsgConnection
 {
-    uint32_t signature;
-    uint32_t timestamp;
-    UdcMessageId messageId;
+    UdcDeviceId clientId;
+    UdcDeviceId serverId;
 };
 
-struct UdcMsgConnectionRequest
-{
-    uint16_t port;
-};
+constexpr size_t UDC_MSG_HEADER_SIZE =
+    sizeof(UdcSignature) +
+    sizeof(UdcMessageId);
 
-void udcGenerateHeader(std::vector<uint8_t>& msg, const UdcMsgHeader& header);
+constexpr size_t UDC_MSG_CONNECTION_SIZE =
+    UDC_MSG_HEADER_SIZE +
+    2 * sizeof(UdcDeviceId);
 
-void udcGenerateMsg(std::vector<uint8_t>& msg, const UdcMsgHeader& header, const UdcMsgConnectionRequest& body);
+void udcGenerateHeader(std::vector<uint8_t>& msg, UdcSignature signature, UdcMessageId messageId);
 
-void udcReadMessage(uint32_t sig, const std::vector<uint8_t>& str, UdcMsgHeader& header, UdcMsgConnectionRequest& msg);
+[[nodiscard]]
+bool udcReadHeader(const std::vector<uint8_t>& src, uint32_t signature, UdcMessageId& messageId);
+
+void udcGenerateMessage(std::vector<uint8_t>& msg, const UdcMsgConnection& body, UdcSignature signature, UdcMessageId messageId);
+
+[[nodiscard]]
+bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgConnection& dst);
 
 #endif

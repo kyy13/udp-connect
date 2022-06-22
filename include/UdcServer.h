@@ -5,38 +5,52 @@
 #define UDC_SERVER_H
 
 #include "udp_connect.h"
-#include "UdcSocketReceiver.h"
-#include "UdcSocketSender.h"
+#include "UdcDualSocket.h"
+#include "UdcDeviceId.h"
 
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include <chrono>
+#include <queue>
 
 struct UdcClientInfo
 {
-    UdcServiceId id;
-    UdcStatus status;
-    UdcSocketSender socket;
-};
+    UdcDeviceId id;
 
-struct UdcServiceIdHasher
-{
-    uint32_t operator()(const UdcServiceId& clientId)
+    uint16_t port;
+
+    UdcAddressFamily addressFamily;
+
+    union
     {
-        return
-            *reinterpret_cast<const uint32_t*>(&clientId.bytes[0]) ^
-            *reinterpret_cast<const uint32_t*>(&clientId.bytes[4]) ^
-            *reinterpret_cast<const uint32_t*>(&clientId.bytes[8]) ^
-            *reinterpret_cast<const uint32_t*>(&clientId.bytes[12]) ^
-            *reinterpret_cast<const uint32_t*>(&clientId.bytes[16]);
-    }
+        UdcAddressIPv4 addressIPv4;
+        UdcAddressIPv6 addressIPv6;
+    };
+
+    UdcStatus status;
+
+    std::chrono::milliseconds timeout;
+    std::chrono::milliseconds tryConnectTime;
+    std::chrono::milliseconds lastSendTime;
 };
 
 struct UdcServer
 {
-    UdcServiceId id;
-    UdcSocketReceiver socket;
-    std::unordered_map<UdcServiceId, std::unique_ptr<UdcClientInfo>, UdcServiceIdHasher> clients;
+    UdcDeviceId id;
+
+    UdcSignature signature;
+
+    UdcDualSocket socket;
+
+    // Maps temporary device ID to clients pending connection
+    std::queue<std::unique_ptr<UdcClientInfo>> pendingClients;
+
+    // Maps device ID to connected clients
+    std::unordered_map<UdcDeviceId, std::unique_ptr<UdcClientInfo>, UdcDeviceIdHasher, UdcDeviceIdComparator> clients;
+
+    // Message Buffer
+    std::vector<uint8_t> messageBuffer;
 };
 
 #endif
