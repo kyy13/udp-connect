@@ -11,36 +11,49 @@ extern "C"
     // A local server
     struct UdcServer;
 
+    // An event
+    struct UdcEvent;
+
+    // Types of events
+    enum UdcEventType
+    {
+        UDC_EVENT_CONNECTION_SUCCESS,
+        UDC_EVENT_CONNECTION_TIMEOUT,
+        UDC_EVENT_CONNECTION_LOST,
+        UDC_EVENT_RECEIVE_MESSAGE,
+    };
+
     // A unique identifier for a service
     struct UdcDeviceId
     {
         uint8_t bytes[20];
     };
 
+    // Packet signature
     using UdcSignature = uint32_t;
 
-    enum UdcStatus : uint8_t
-    {
-        UDC_NOT_CONNECTED,
-        UDC_CONNECTING,
-        UDC_RECONNECTING,
-        UDC_CONNECTED,
-    };
-
-    enum UdcReliability : uint8_t
-    {
-        UDC_UNRELIABLE,
-        UDC_RECEIVED_AT_LEAST_ONCE,
-        UDC_RECEIVED_ONCE,
-        UDC_RECEIVED_IN_ORDER_ONCE,
-    };
-
-    enum UdcResult : uint32_t
-    {
-        UDC_SUCCESS,
-        UDC_BIND_SOCKET_ERROR,
-        UDC_ALREADY_CONNECTED,
-    };
+//    enum UdcStatus : uint8_t
+//    {
+//        UDC_NOT_CONNECTED,
+//        UDC_CONNECTING,
+//        UDC_RECONNECTING,
+//        UDC_CONNECTED,
+//    };
+//
+//    enum UdcReliability : uint8_t
+//    {
+//        UDC_UNRELIABLE,
+//        UDC_RECEIVED_AT_LEAST_ONCE,
+//        UDC_RECEIVED_ONCE,
+//        UDC_RECEIVED_IN_ORDER_ONCE,
+//    };
+//
+//    enum UdcResult : uint32_t
+//    {
+//        UDC_SUCCESS,
+//        UDC_BIND_SOCKET_ERROR,
+//        UDC_ALREADY_CONNECTED,
+//    };
 
     // Creates a local server responsible for reading and acknowledging
     // messages from remote clients
@@ -58,31 +71,13 @@ extern "C"
     // timeout is time in milliseconds
     bool udcTryConnect(
         UdcServer* server,
-        const char* ipString,
-        const char* portString,
+        const char* nodeName,
+        const char* serviceName,
         uint32_t timeout);
 
-    uint32_t udcGetConnectionCount(UdcServer* server);
+    UdcEvent* udcProcessEvents(UdcServer* server);
 
-//    // Disconnect from a client
-//    // Removing all pending messages (sent and received)
-//    void udcDisconnect(UdcServer* server, const UdcDeviceId& clientId);
-
-    // Update and read messages from the server
-    // returns a pointer to a message buffer and the size of the message
-    // returns nullptr when there are no messages left to read
-    // Call function every frame until result is nullptr
-    uint8_t* udcReceive(UdcServer* server, UdcDeviceId& clientId, uint32_t& size);
-
-//
-//    // Send a message to the client
-//    UdcResult udcWriteClient(UdcClient* client, const char* message, UdcReliability reliability);
-//
-//    // Get the status of a client
-//    UdcStatus udcGetClientStatus(UdcClient* client);
-//
-//    // Get the ping (in ms) of the client
-//    uint32_t udcGetClientPing(UdcClient* client);
+    UdcEventType udcGetEventType(const UdcEvent* event);
 }
 
 #endif

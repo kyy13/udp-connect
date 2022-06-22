@@ -19,17 +19,18 @@ struct UdcClientInfo
 {
     UdcDeviceId id;
 
+    // Input address data
+    std::string nodeName;
+    std::string serviceName;
+
+    // Address Data
     uint16_t port;
-
     UdcAddressFamily addressFamily;
-
     union
     {
         UdcAddressIPv4 addressIPv4;
         UdcAddressIPv6 addressIPv6;
     };
-
-    UdcStatus status;
 
     std::chrono::milliseconds timeout;
     std::chrono::milliseconds tryConnectTime;

@@ -7,9 +7,9 @@
 #include "UdcMessage.h"
 #include "UdcDeviceId.h"
 #include "UdcConnection.h"
+#include "UdcEvent.h"
 
 #include <cstring>
-#include <ws2tcpip.h>
 #include <chrono>
 
 UdcServer* udcCreateServer(
@@ -49,8 +49,8 @@ void udcDeleteServer(UdcServer* server)
 
 bool udcTryConnect(
     UdcServer* server,
-    const char* ipString,
-    const char* portString,
+    const char* nodeName,
+    const char* serviceName,
     uint32_t timeout)
 {
     if (server == nullptr || timeout == 0)
@@ -60,14 +60,17 @@ bool udcTryConnect(
 
     auto clientInfo = std::make_unique<UdcClientInfo>();
 
+    clientInfo->nodeName = nodeName;
+    clientInfo->serviceName = serviceName;
+
     // Get address
     // Create preliminary device ID
-    if (UdcSocket::stringToIPv6(ipString, portString, clientInfo->addressIPv6, clientInfo->port))
+    if (UdcSocket::stringToIPv6(nodeName, serviceName, clientInfo->addressIPv6, clientInfo->port))
     {
         clientInfo->addressFamily = UDC_IPV6;
         clientInfo->id = newDeviceId(clientInfo->addressIPv6, clientInfo->port);
     }
-    else if (UdcSocket::stringToIPv4(ipString, portString, clientInfo->addressIPv4, clientInfo->port))
+    else if (UdcSocket::stringToIPv4(nodeName, serviceName, clientInfo->addressIPv4, clientInfo->port))
     {
         clientInfo->addressFamily = UDC_IPV4;
         clientInfo->id = newDeviceId(clientInfo->addressIPv4, clientInfo->port);
@@ -90,13 +93,8 @@ bool udcTryConnect(
     return true;
 }
 
-uint32_t udcGetConnectionCount(UdcServer* server)
-{
-    return server->clients.size();
-}
-
 template<class T>
-uint8_t* udcReceiveT(UdcServer* server, UdcDeviceId& clientId, uint32_t& size)
+bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
 {
     UdcMessageId msgId;
     uint16_t port;
@@ -115,20 +113,21 @@ uint8_t* udcReceiveT(UdcServer* server, UdcDeviceId& clientId, uint32_t& size)
         {
             case UDC_MSG_CONNECTION_REQUEST:
                 tryReadConnectionRequest(server, address, port);
-                break;
+                return false;
             case UDC_MSG_CONNECTION_HANDSHAKE:
-                tryReadConnectionHandshake(server, address);
-                break;
+                return tryReadConnectionHandshake(server, address, event);
             case UDC_MSG_EXTERNAL:
-                return nullptr; // TODO
+                return false;
         }
     }
 
-    return nullptr;
+    return false;
 }
 
-uint8_t* udcReceive(UdcServer* server, UdcDeviceId& clientId, uint32_t& size)
+UdcEvent* udcProcessEvents(UdcServer* server)
 {
+    static UdcEvent event;
+
     // Send outgoing pending connection requests
     if (!server->pendingClients.empty())
     {
@@ -136,15 +135,21 @@ uint8_t* udcReceive(UdcServer* server, UdcDeviceId& clientId, uint32_t& size)
     }
 
     // Receive IPv6
-
-    uint8_t* result = udcReceiveT<UdcAddressIPv6>(server, clientId, size);
-
-    if (result != nullptr)
+    if (udcReceiveMessage<UdcAddressIPv6>(server, event))
     {
-        return result;
+        return &event;
     }
 
     // Receive IPv4
+    if (udcReceiveMessage<UdcAddressIPv4>(server, event))
+    {
+        return &event;
+    }
 
-    return udcReceiveT<UdcAddressIPv4>(server, clientId, size);
+    return nullptr;
+}
+
+UdcEventType udcGetEventType(const UdcEvent* event)
+{
+    return event->eventType;
 }

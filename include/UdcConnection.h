@@ -7,6 +7,7 @@
 #include "UdcServer.h"
 #include "UdcDeviceId.h"
 #include "UdcMessage.h"
+#include "UdcEvent.h"
 
 // UDC_MSG_CONNECTION_REQUEST
 void trySendConnectionRequest(UdcServer* server, UdcClientInfo& client)
@@ -85,7 +86,7 @@ void tryReadConnectionRequest(UdcServer* server, const T& address, uint16_t port
 
 // UDC_MSG_CONNECTION_HANDSHAKE
 template<class T>
-void tryReadConnectionHandshake(UdcServer* server, const T& address)
+bool tryReadConnectionHandshake(UdcServer* server, const T& address, UdcEvent& event)
 {
     UdcMsgConnection msg;
 
@@ -93,23 +94,30 @@ void tryReadConnectionHandshake(UdcServer* server, const T& address)
     // then ignore
     if (server->pendingClients.empty())
     {
-        return;
+        return false;
     }
 
     // Parse the message
     if (!udcReadMessage(server->messageBuffer, msg))
     {
-        return;
+        return false;
     }
 
     // Check for matching server IDs and client IDs
     if (cmpDeviceId(server->id, msg.serverId) &&
         cmpDeviceId(server->pendingClients.front()->id, msg.clientId))
     {
-        // Connected to client
-        server->clients[msg.clientId] = std::move(server->pendingClients.front());
+        auto& client = server->pendingClients.front();
+
+        event.eventType = UDC_EVENT_CONNECTION_SUCCESS;
+        event.endPointId = msg.clientId;
+        event.nodeName = client->nodeName.c_str();
+        event.serviceName = client->serviceName.c_str();
+
+        server->clients[msg.clientId] = std::move(client);
         server->pendingClients.pop();
-        return;
+
+        return true;
     }
 
     // If this server doesn't know its ID, then grab it from the handshake

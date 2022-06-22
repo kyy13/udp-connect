@@ -29,7 +29,7 @@ int main()
     }
 
     // Connect nodeA to nodeB
-    if (!udcTryConnect(nodeA, "127.0.0.1", "1235", 1000))
+    if (!udcTryConnect(nodeA, "::1", "1235", 1000))
     {
         std::cout << "failed to initiate connection from A to B\n";
         udcDeleteServer(nodeA);
@@ -38,8 +38,7 @@ int main()
     }
 
     // Receive until connected
-    UdcDeviceId clientId;
-    uint32_t size;
+    UdcEvent* event;
 
     auto t0 = std::chrono::system_clock::now();
 
@@ -57,20 +56,20 @@ int main()
         }
 
         // Receive from nodeA
-        uint8_t* result = udcReceive(nodeA, clientId, size);
+        while ((event = udcProcessEvents(nodeA)) != nullptr)
+        {
+            switch(udcGetEventType(event))
+            {
+            case UDC_EVENT_CONNECTION_SUCCESS:
+                udcDeleteServer(nodeA);
+                udcDeleteServer(nodeB);
+                return 0;
+            default:
+                break;
+            }
+        }
 
         // Receive from nodeB
-        result = udcReceive(nodeB, clientId, size);
-
-        // Check if A is connected to B
-        if (udcGetConnectionCount(nodeA) == 1)
-        {
-            break;
-        }
+        while (udcProcessEvents(nodeB) != nullptr);
     }
-
-    udcDeleteServer(nodeA);
-    udcDeleteServer(nodeB);
-
-    return 0;
 }

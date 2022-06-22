@@ -81,8 +81,6 @@ int main()
     uint16_t rPort;
     std::vector<uint8_t> message;
 
-    bool received = false;
-
     for (size_t i = 0; i != 100; ++i)
     {
         if (!socket.send(addressIPv6, 7777, udpMessage))
@@ -98,18 +96,15 @@ int main()
                 std::cout << "packet received incorrectly.\n";
                 return -1;
             }
-
-            received = true;
+            else
+            {
+                return 0;
+            }
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
-    if (!received)
-    {
-        std::cout << "packet not received.\n";
-        return -1;
-    }
-
-    return 0;
+    std::cout << "packet not received.\n";
+    return -1;
 }
