@@ -25,9 +25,9 @@ void UdcPacketLogger::logReceived(const UdcAddressIPv4& address, uint16_t port, 
     for (uint8_t byte : address.octets)
     {
         m_file
-            << std::hex
-            << std::uppercase
-            << byte << '.';
+            << std::dec
+            << static_cast<uint32_t>(byte)
+            << '.';
     }
 
     m_file << ':' << port << ' ';
@@ -37,7 +37,8 @@ void UdcPacketLogger::logReceived(const UdcAddressIPv4& address, uint16_t port, 
         m_file
             << std::hex
             << std::uppercase
-            << byte << ' ';
+            << static_cast<uint32_t>(byte)
+            << ' ';
     }
 
     m_file << '\n';
@@ -52,7 +53,8 @@ void UdcPacketLogger::logReceived(const UdcAddressIPv6& address, uint16_t port, 
         m_file
             << std::hex
             << std::uppercase
-            << segment << '.';
+            << segment
+            << ':';
     }
 
     m_file << ':' << port << ' ';
@@ -62,7 +64,8 @@ void UdcPacketLogger::logReceived(const UdcAddressIPv6& address, uint16_t port, 
         m_file
             << std::hex
             << std::uppercase
-            << byte << ' ';
+            << static_cast<uint32_t>(byte)
+            << ' ';
     }
 
     m_file << '\n';
@@ -75,9 +78,9 @@ void UdcPacketLogger::logSent(const UdcAddressIPv4& address, uint16_t port, cons
     for (uint8_t byte : address.octets)
     {
         m_file
-            << std::hex
-            << std::uppercase
-            << byte << '.';
+            << std::dec
+            << static_cast<uint32_t>(byte)
+            << '.';
     }
 
     m_file << ':' << port << ' ';
@@ -87,7 +90,8 @@ void UdcPacketLogger::logSent(const UdcAddressIPv4& address, uint16_t port, cons
         m_file
             << std::hex
             << std::uppercase
-            << byte << ' ';
+            << static_cast<uint32_t>(byte)
+            << ' ';
     }
 
     m_file << '\n';
@@ -102,7 +106,8 @@ void UdcPacketLogger::logSent(const UdcAddressIPv6& address, uint16_t port, cons
         m_file
             << std::hex
             << std::uppercase
-            << segment << '.';
+            << segment
+            << '.';
     }
 
     m_file << ':' << port << ' ';
@@ -112,7 +117,8 @@ void UdcPacketLogger::logSent(const UdcAddressIPv6& address, uint16_t port, cons
         m_file
             << std::hex
             << std::uppercase
-            << byte << ' ';
+            << static_cast<uint32_t>(byte)
+            << ' ';
     }
 
     m_file << '\n';
