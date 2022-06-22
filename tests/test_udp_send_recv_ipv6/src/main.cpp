@@ -1,7 +1,7 @@
 // udp-connect
 // Kyle J Burgess
 
-#include "UdcDualSocket.h"
+#include "UdcSocketMux.h"
 
 #include <cstring>
 #include <iostream>
@@ -20,7 +20,7 @@ int main()
         return -1;
     }
 
-    UdcDualSocket socket;
+    UdcSocketMux socket;
 
     // Connect sender
 
@@ -67,7 +67,7 @@ int main()
 
     // Connect receiver
 
-    UdcDualSocket receiver;
+    UdcSocketMux receiver;
 
     if (!receiver.bind(7777, 6666))
     {

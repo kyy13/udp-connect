@@ -12,35 +12,19 @@
 #include <ws2tcpip.h>
 #include <chrono>
 
-bool clientSend(const UdcServer* server, const UdcClientInfo& clientInfo, const std::vector<uint8_t>& message)
-{
-    if (clientInfo.addressFamily == UDC_IPV6)
-    {
-        // Send connection request
-        if (server->socket.send(clientInfo.addressIPv6, clientInfo.port, server->messageBuffer))
-        {
-            return true;
-        }
-    }
-    else // UDC_IPV4
-    {
-        // Send connection request
-        if (server->socket.send(clientInfo.addressIPv4, clientInfo.port, server->messageBuffer))
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-UdcServer* udcCreateServer(uint32_t signature, uint16_t portIPv4, uint16_t portIPv6)
+UdcServer* udcCreateServer(
+    uint32_t signature,
+    uint16_t portIPv4,
+    uint16_t portIPv6,
+    const char* logFileName)
 {
     UdcServer* server;
 
     try
     {
-        server = new UdcServer;
+        server = (logFileName == nullptr)
+            ? new UdcServer()
+            : new UdcServer(logFileName);
     }
     catch(...)
     {
@@ -54,6 +38,7 @@ UdcServer* udcCreateServer(uint32_t signature, uint16_t portIPv4, uint16_t portI
     }
 
     server->signature = signature;
+
     return server;
 }
 

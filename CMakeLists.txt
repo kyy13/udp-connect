@@ -11,9 +11,11 @@ option(BUILD_TESTS "build tests?" ON)
 set(
     SOURCES
     src/udp_connect.cpp
-    src/UdcDualSocket.cpp
+    src/UdcSocketMux.cpp
     src/UdcMessage.cpp
     src/UdcDeviceId.cpp
+    src/UdcPacketLogger.cpp
+    src/UdcServer.cpp
 )
 
 IF(WIN32)

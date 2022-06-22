@@ -1,7 +1,7 @@
 // udp-connect
 // Kyle J Burgess
 
-#include "UdcDualSocket.h"
+#include "UdcSocketMux.h"
 
 #include <cstring>
 #include <iostream>
@@ -10,7 +10,7 @@
 int main()
 {
     // Create nodeA
-    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345);
+    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345, "test_connect_logA.txt");
 
     if (nodeA == nullptr)
     {
@@ -19,11 +19,12 @@ int main()
     }
 
     // Create nodeB
-    UdcServer* nodeB = udcCreateServer(0x01020304, 1235, 2346);
+    UdcServer* nodeB = udcCreateServer(0x01020304, 1235, 2346, "test_connect_logB.txt");
 
     if (nodeB == nullptr)
     {
         std::cout << "failed to create Node B\n";
+        udcDeleteServer(nodeA);
         return -1;
     }
 
@@ -31,6 +32,8 @@ int main()
     if (!udcTryConnect(nodeA, "127.0.0.1", "1235", 1000))
     {
         std::cout << "failed to initiate connection from A to B\n";
+        udcDeleteServer(nodeA);
+        udcDeleteServer(nodeB);
         return -1;
     }
 
@@ -49,6 +52,7 @@ int main()
         {
             udcDeleteServer(nodeA);
             udcDeleteServer(nodeB);
+            std::cout << "failed to fully connect\n";
             return -1;
         }
 

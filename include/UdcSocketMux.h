@@ -1,16 +1,23 @@
 // udp-connect
 // Kyle J Burgess
 
-#ifndef UDC_DUAL_SOCKET_H
-#define UDC_DUAL_SOCKET_H
+#ifndef UDC_SOCKET_MUX_H
+#define UDC_SOCKET_MUX_H
 
 #include "UdcSocket.h"
+#include "UdcPacketLogger.h"
 
-// UdcDualSocket
+#include <memory>
+
+// UdcSocketMux
 // Manages sending and receiving UDP packets on IPv4 and IPv6
-class UdcDualSocket
+class UdcSocketMux
 {
 public:
+
+    UdcSocketMux();
+
+    UdcSocketMux(const std::string& logFileName);
 
     // Attempt to bind primaryPort as a dual-stack IPv6 port that's capable of receiving IPv4 and IPv6
     // If dual-stack is not available, then binds an IPv6 port on primaryPort and an IPv4 port on backupPort
@@ -51,6 +58,7 @@ public:
 protected:
     UdcSocket m_socketIPv4;
     UdcSocket m_socketIPv6;
+    std::unique_ptr<UdcPacketLogger> m_logger;
 };
 
 #endif

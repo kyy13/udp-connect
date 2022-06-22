@@ -45,7 +45,11 @@ extern "C"
     // Creates a local server responsible for reading and acknowledging
     // messages from remote clients
     // returns nullptr if it fails to connect
-    UdcServer* udcCreateServer(uint32_t signature, uint16_t portIPv4, uint16_t portIPv6);
+    UdcServer* udcCreateServer(
+        uint32_t signature,
+        uint16_t portIPv4,
+        uint16_t portIPv6,
+        const char* logFileName);
 
     // Stops and deletes a server
     void udcDeleteServer(UdcServer* server);

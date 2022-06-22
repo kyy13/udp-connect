@@ -5,8 +5,9 @@
 #define UDC_SERVER_H
 
 #include "udp_connect.h"
-#include "UdcDualSocket.h"
+#include "UdcSocketMux.h"
 #include "UdcDeviceId.h"
+#include "UdcPacketLogger.h"
 
 #include <memory>
 #include <vector>
@@ -37,11 +38,15 @@ struct UdcClientInfo
 
 struct UdcServer
 {
+    UdcServer();
+
+    UdcServer(const std::string& logFileName);
+
     UdcDeviceId id;
 
     UdcSignature signature;
 
-    UdcDualSocket socket;
+    UdcSocketMux socket;
 
     // Maps temporary device ID to clients pending connection
     std::queue<std::unique_ptr<UdcClientInfo>> pendingClients;
