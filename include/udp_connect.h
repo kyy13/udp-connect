@@ -23,37 +23,14 @@ extern "C"
         UDC_EVENT_RECEIVE_MESSAGE,
     };
 
-    // A unique identifier for a service
-    struct UdcDeviceId
+    // A globally unique identifier for a service
+    struct UdcEndPointId
     {
         uint8_t bytes[20];
     };
 
     // Packet signature
     using UdcSignature = uint32_t;
-
-//    enum UdcStatus : uint8_t
-//    {
-//        UDC_NOT_CONNECTED,
-//        UDC_CONNECTING,
-//        UDC_RECONNECTING,
-//        UDC_CONNECTED,
-//    };
-//
-//    enum UdcReliability : uint8_t
-//    {
-//        UDC_UNRELIABLE,
-//        UDC_RECEIVED_AT_LEAST_ONCE,
-//        UDC_RECEIVED_ONCE,
-//        UDC_RECEIVED_IN_ORDER_ONCE,
-//    };
-//
-//    enum UdcResult : uint32_t
-//    {
-//        UDC_SUCCESS,
-//        UDC_BIND_SOCKET_ERROR,
-//        UDC_ALREADY_CONNECTED,
-//    };
 
     // Creates a local server responsible for reading and acknowledging
     // messages from remote clients
@@ -75,8 +52,11 @@ extern "C"
         const char* serviceName,
         uint32_t timeout);
 
+    // Main update loop
+    // process events until nullptr is returned
     UdcEvent* udcProcessEvents(UdcServer* server);
 
+    // Get the type of event that was returned by udcProcessEvents()
     UdcEventType udcGetEventType(const UdcEvent* event);
 }
 

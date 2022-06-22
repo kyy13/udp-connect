@@ -4,6 +4,7 @@
 #include "UdcPacketLogger.h"
 
 #include <stdexcept>
+#include <iomanip>
 
 UdcPacketLogger::UdcPacketLogger(const std::string& fileName)
     : m_file(fileName, std::ios::trunc)
@@ -30,13 +31,12 @@ void UdcPacketLogger::logReceived(const UdcAddressIPv4& address, uint16_t port, 
             << '.';
     }
 
-    m_file << ':' << port << ' ';
+    m_file << ':' << std::dec << port << ' ';
 
     for (uint8_t byte : packetData)
     {
         m_file
-            << std::hex
-            << std::uppercase
+            << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << std::right
             << static_cast<uint32_t>(byte)
             << ' ';
     }
@@ -51,19 +51,17 @@ void UdcPacketLogger::logReceived(const UdcAddressIPv6& address, uint16_t port, 
     for (uint16_t segment : address.segments)
     {
         m_file
-            << std::hex
-            << std::uppercase
+            << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << std::right
             << segment
             << ':';
     }
 
-    m_file << ':' << port << ' ';
+    m_file << ':' << std::dec << port << ' ';
 
     for (uint8_t byte : packetData)
     {
         m_file
-            << std::hex
-            << std::uppercase
+            << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << std::right
             << static_cast<uint32_t>(byte)
             << ' ';
     }
@@ -83,13 +81,12 @@ void UdcPacketLogger::logSent(const UdcAddressIPv4& address, uint16_t port, cons
             << '.';
     }
 
-    m_file << ':' << port << ' ';
+    m_file << ':' << std::dec << port << ' ';
 
     for (uint8_t byte : packetData)
     {
         m_file
-            << std::hex
-            << std::uppercase
+            << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << std::right
             << static_cast<uint32_t>(byte)
             << ' ';
     }
@@ -104,19 +101,17 @@ void UdcPacketLogger::logSent(const UdcAddressIPv6& address, uint16_t port, cons
     for (uint16_t segment : address.segments)
     {
         m_file
-            << std::hex
-            << std::uppercase
+            << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << std::right
             << segment
             << '.';
     }
 
-    m_file << ':' << port << ' ';
+    m_file << ':' << std::dec << port << ' ';
 
     for (uint8_t byte : packetData)
     {
         m_file
-            << std::hex
-            << std::uppercase
+            << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << std::right
             << static_cast<uint32_t>(byte)
             << ' ';
     }

@@ -3,8 +3,15 @@
 
 #include "UdcServer.h"
 
-UdcServer::UdcServer() = default;
+UdcClientInfo::UdcClientInfo()
+    : id({})
+{}
+
+UdcServer::UdcServer()
+    : id({})
+{}
 
 UdcServer::UdcServer(const std::string& logFileName)
-    : socket(logFileName)
+    : id({})
+    , socket(logFileName)
 {}

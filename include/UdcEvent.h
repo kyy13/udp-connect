@@ -9,7 +9,7 @@
 struct UdcEvent
 {
     UdcEventType eventType;
-    UdcDeviceId endPointId;
+    UdcEndPointId endPointId;
     const char* nodeName;
     const char* serviceName;
     const uint8_t* buffer;

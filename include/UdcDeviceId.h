@@ -8,25 +8,25 @@
 #include "UdcTypes.h"
 
 [[nodiscard]]
-UdcDeviceId newDeviceId(const UdcAddressIPv4& address, uint16_t port);
+UdcEndPointId newDeviceId(const UdcAddressIPv4& address, uint16_t port);
 
 [[nodiscard]]
-UdcDeviceId newDeviceId(const UdcAddressIPv6& address, uint16_t port);
+UdcEndPointId newDeviceId(const UdcAddressIPv6& address, uint16_t port);
 
 [[nodiscard]]
-bool isNullDeviceId(const UdcDeviceId& deviceId);
+bool isNullDeviceId(const UdcEndPointId& deviceId);
 
 [[nodiscard]]
-bool cmpDeviceId(const UdcDeviceId& a, const UdcDeviceId& b);
+bool cmpDeviceId(const UdcEndPointId& a, const UdcEndPointId& b);
 
 struct UdcDeviceIdHasher
 {
-    uint32_t operator()(const UdcDeviceId& clientId) const;
+    uint32_t operator()(const UdcEndPointId& clientId) const;
 };
 
 struct UdcDeviceIdComparator
 {
-    uint32_t operator()(const UdcDeviceId& a, const UdcDeviceId& b) const;
+    uint32_t operator()(const UdcEndPointId& a, const UdcEndPointId& b) const;
 };
 
 #endif

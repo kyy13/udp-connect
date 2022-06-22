@@ -5,9 +5,9 @@
 
 #include <cstring>
 
-UdcDeviceId newDeviceId(const UdcAddressIPv4& address, uint16_t port)
+UdcEndPointId newDeviceId(const UdcAddressIPv4& address, uint16_t port)
 {
-    UdcDeviceId id {};
+    UdcEndPointId id {};
     UdcAddressFamily family = UDC_IPV4;
 
     memcpy(id.bytes, address.octets, sizeof(address.octets));
@@ -17,9 +17,9 @@ UdcDeviceId newDeviceId(const UdcAddressIPv4& address, uint16_t port)
     return id;
 }
 
-UdcDeviceId newDeviceId(const UdcAddressIPv6& address, uint16_t port)
+UdcEndPointId newDeviceId(const UdcAddressIPv6& address, uint16_t port)
 {
-    UdcDeviceId id {};
+    UdcEndPointId id {};
     UdcAddressFamily family = UDC_IPV6;
 
     memcpy(id.bytes, address.segments, sizeof(address.segments));
@@ -29,18 +29,18 @@ UdcDeviceId newDeviceId(const UdcAddressIPv6& address, uint16_t port)
     return id;
 }
 
-bool isNullDeviceId(const UdcDeviceId& deviceId)
+bool isNullDeviceId(const UdcEndPointId& deviceId)
 {
-    static UdcDeviceId nulLDeviceId {};
+    static UdcEndPointId nulLDeviceId {};
     return memcmp(deviceId.bytes, nulLDeviceId.bytes, sizeof(deviceId.bytes)) == 0;
 }
 
-bool cmpDeviceId(const UdcDeviceId& a, const UdcDeviceId& b)
+bool cmpDeviceId(const UdcEndPointId& a, const UdcEndPointId& b)
 {
     return memcmp(a.bytes, b.bytes, sizeof(a.bytes)) == 0;
 }
 
-uint32_t UdcDeviceIdHasher::operator()(const UdcDeviceId& clientId) const
+uint32_t UdcDeviceIdHasher::operator()(const UdcEndPointId& clientId) const
 {
     return
         *reinterpret_cast<const uint32_t*>(&clientId.bytes[ 0]) ^
@@ -50,7 +50,7 @@ uint32_t UdcDeviceIdHasher::operator()(const UdcDeviceId& clientId) const
             *reinterpret_cast<const uint32_t*>(&clientId.bytes[16]);
 }
 
-uint32_t UdcDeviceIdComparator::operator()(const UdcDeviceId& a, const UdcDeviceId& b) const
+uint32_t UdcDeviceIdComparator::operator()(const UdcEndPointId& a, const UdcEndPointId& b) const
 {
     return cmpDeviceId(a, b);
 }

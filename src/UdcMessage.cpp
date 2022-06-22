@@ -39,10 +39,10 @@ void udcGenerateMessage(std::vector<uint8_t>& msg, const UdcMsgConnection& body,
 
     uint8_t* ptr = msg.data() + UDC_MSG_HEADER_SIZE;
 
-    memcpy(ptr, &body.clientId, sizeof(UdcDeviceId));
-    ptr += sizeof(UdcDeviceId);
+    memcpy(ptr, &body.clientId, sizeof(UdcEndPointId::bytes));
+    ptr += sizeof(UdcEndPointId::bytes);
 
-    memcpy(ptr, &body.serverId, sizeof(UdcDeviceId));
+    memcpy(ptr, &body.serverId, sizeof(UdcEndPointId::bytes));
 }
 
 bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgConnection& dst)
@@ -54,10 +54,10 @@ bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgConnection& dst)
 
     const uint8_t* ptr = src.data() + UDC_MSG_HEADER_SIZE;
 
-    memcpy(&dst.clientId, ptr, sizeof(UdcDeviceId));
-    ptr += sizeof(UdcDeviceId);
+    memcpy(&dst.clientId, ptr, sizeof(UdcEndPointId::bytes));
+    ptr += sizeof(UdcEndPointId::bytes);
 
-    memcpy(&dst.serverId, ptr, sizeof(UdcDeviceId));
+    memcpy(&dst.serverId, ptr, sizeof(UdcEndPointId::bytes));
 
     return true;
 }

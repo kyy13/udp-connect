@@ -17,7 +17,9 @@
 
 struct UdcClientInfo
 {
-    UdcDeviceId id;
+    UdcClientInfo();
+
+    UdcEndPointId id;
 
     // Input address data
     std::string nodeName;
@@ -43,7 +45,7 @@ struct UdcServer
 
     UdcServer(const std::string& logFileName);
 
-    UdcDeviceId id;
+    UdcEndPointId id;
 
     UdcSignature signature;
 
@@ -53,7 +55,7 @@ struct UdcServer
     std::queue<std::unique_ptr<UdcClientInfo>> pendingClients;
 
     // Maps device ID to connected clients
-    std::unordered_map<UdcDeviceId, std::unique_ptr<UdcClientInfo>, UdcDeviceIdHasher, UdcDeviceIdComparator> clients;
+    std::unordered_map<UdcEndPointId, std::unique_ptr<UdcClientInfo>, UdcDeviceIdHasher, UdcDeviceIdComparator> clients;
 
     // Message Buffer
     std::vector<uint8_t> messageBuffer;

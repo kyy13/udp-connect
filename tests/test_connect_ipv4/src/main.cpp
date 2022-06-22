@@ -10,7 +10,7 @@
 int main()
 {
     // Create nodeA
-    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345, "test_connect_logA.txt");
+    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345, "test_connect_ipv4_logA.txt");
 
     if (nodeA == nullptr)
     {
@@ -19,7 +19,7 @@ int main()
     }
 
     // Create nodeB
-    UdcServer* nodeB = udcCreateServer(0x01020304, 1235, 2346, "test_connect_logB.txt");
+    UdcServer* nodeB = udcCreateServer(0x01020304, 1235, 2346, "test_connect_ipv4_logB.txt");
 
     if (nodeB == nullptr)
     {
@@ -29,7 +29,7 @@ int main()
     }
 
     // Connect nodeA to nodeB
-    if (!udcTryConnect(nodeA, "::1", "1235", 1000))
+    if (!udcTryConnect(nodeA, "127.0.0.1", "1235", 1000))
     {
         std::cout << "failed to initiate connection from A to B\n";
         udcDeleteServer(nodeA);
