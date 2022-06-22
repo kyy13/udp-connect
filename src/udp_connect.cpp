@@ -14,8 +14,8 @@
 
 UdcServer* udcCreateServer(
     uint32_t signature,
-    uint16_t portIPv4,
     uint16_t portIPv6,
+    uint16_t portIPv4,
     const char* logFileName)
 {
     UdcServer* server;
@@ -31,7 +31,7 @@ UdcServer* udcCreateServer(
         return nullptr;
     }
 
-    if (!server->socket.bind(portIPv4, portIPv6))
+    if (!server->socket.bind(portIPv6, portIPv4))
     {
         delete server;
         return nullptr;
