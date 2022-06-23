@@ -1,11 +1,11 @@
 // udp-connect
 // Kyle J Burgess
 
-#include "UdcDeviceId.h"
+#include "UdcEndPointId.h"
 
 #include <cstring>
 
-UdcEndPointId newDeviceId(const UdcAddressIPv4& address, uint16_t port)
+UdcEndPointId newEndPointId(const UdcAddressIPv4& address, uint16_t port)
 {
     UdcEndPointId id {};
     UdcAddressFamily family = UDC_IPV4;
@@ -17,7 +17,7 @@ UdcEndPointId newDeviceId(const UdcAddressIPv4& address, uint16_t port)
     return id;
 }
 
-UdcEndPointId newDeviceId(const UdcAddressIPv6& address, uint16_t port)
+UdcEndPointId newEndPointId(const UdcAddressIPv6& address, uint16_t port)
 {
     UdcEndPointId id {};
     UdcAddressFamily family = UDC_IPV6;
@@ -29,18 +29,18 @@ UdcEndPointId newDeviceId(const UdcAddressIPv6& address, uint16_t port)
     return id;
 }
 
-bool isNullDeviceId(const UdcEndPointId& deviceId)
+bool isNullEndPointId(const UdcEndPointId& deviceId)
 {
     static UdcEndPointId nulLDeviceId {};
     return memcmp(deviceId.bytes, nulLDeviceId.bytes, sizeof(deviceId.bytes)) == 0;
 }
 
-bool cmpDeviceId(const UdcEndPointId& a, const UdcEndPointId& b)
+bool cmpEndPointId(const UdcEndPointId& a, const UdcEndPointId& b)
 {
     return memcmp(a.bytes, b.bytes, sizeof(a.bytes)) == 0;
 }
 
-uint32_t UdcDeviceIdHasher::operator()(const UdcEndPointId& clientId) const
+uint32_t UdcEndPointIdHasher::operator()(const UdcEndPointId& clientId) const
 {
     return
         *reinterpret_cast<const uint32_t*>(&clientId.bytes[ 0]) ^
@@ -50,7 +50,7 @@ uint32_t UdcDeviceIdHasher::operator()(const UdcEndPointId& clientId) const
             *reinterpret_cast<const uint32_t*>(&clientId.bytes[16]);
 }
 
-uint32_t UdcDeviceIdComparator::operator()(const UdcEndPointId& a, const UdcEndPointId& b) const
+uint32_t UdcEndPointIdComparator::operator()(const UdcEndPointId& a, const UdcEndPointId& b) const
 {
-    return cmpDeviceId(a, b);
+    return cmpEndPointId(a, b);
 }

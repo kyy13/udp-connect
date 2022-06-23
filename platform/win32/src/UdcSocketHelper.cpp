@@ -126,7 +126,7 @@ namespace WinSock
             reinterpret_cast<sockaddr*>(&address),
             sizeof(address));
 
-        return (r != SOCKET_ERROR) && (r == data.size());
+        return (r != SOCKET_ERROR) && (static_cast<size_t>(r) == data.size());
     }
 
     bool sendPacketIPv6(SOCKET s, sockaddr_in6 address, const std::vector<uint8_t>& data)
@@ -139,7 +139,7 @@ namespace WinSock
             reinterpret_cast<sockaddr*>(&address),
             sizeof(address));
 
-        return (r != SOCKET_ERROR) && (r == data.size());
+        return (r != SOCKET_ERROR) && (static_cast<size_t>(r) == data.size());
     }
 
     int32_t receivePacketIPv4(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressIPv4& sourceIP, uint16_t& sourcePort, std::vector<uint8_t>& data)

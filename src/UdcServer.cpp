@@ -3,10 +3,6 @@
 
 #include "UdcServer.h"
 
-UdcClientInfo::UdcClientInfo()
-    : id({})
-{}
-
 UdcServer::UdcServer()
     : id({})
 {}

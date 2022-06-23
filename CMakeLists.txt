@@ -13,9 +13,10 @@ set(
     src/udp_connect.cpp
     src/UdcSocketMux.cpp
     src/UdcMessage.cpp
-    src/UdcDeviceId.cpp
+    src/UdcEndPointId.cpp
     src/UdcPacketLogger.cpp
     src/UdcServer.cpp
+    src/UdcConnection.cpp
 )
 
 IF(WIN32)
