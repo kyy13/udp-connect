@@ -168,6 +168,12 @@ void tryReadPing(UdcServer* server, const T& address, uint16_t port)
         return;
     }
 
+    // Validate that the client is this one
+    if (!cmpEndPointId(msg.clientId, server->id))
+    {
+        return;
+    }
+
     // Generate a pong response
     udcGenerateMessage(
         server->messageBuffer,
