@@ -17,9 +17,23 @@ extern "C"
     // Types of events
     enum UdcEventType
     {
+        // A connection attempt has succeeded
+        // *these events will happen in the order of udcTryConnect() calls
         UDC_EVENT_CONNECTION_SUCCESS,
+
+        // A connection attempt has timed out (failed)
+        // *these events will happen in the order of udcTryConnect() calls
         UDC_EVENT_CONNECTION_TIMEOUT,
+
+        // A connection was abnormally lost, the endpoint connection will continue trying to connect
+        // and will stop queueing unreliable messages to send until a UDC_EVENT_CONNECTION_REGAINED event
+        // happens, or udcDisconnect() is called.
         UDC_EVENT_CONNECTION_LOST,
+
+        // A connection that was lost has been regained.
+        UDC_EVENT_CONNECTION_REGAINED,
+
+        // A message has been received.
         UDC_EVENT_RECEIVE_MESSAGE,
     };
 
@@ -45,7 +59,10 @@ extern "C"
     void udcDeleteServer(UdcServer* server);
 
     // Try to connect to a client from a server
-    // tryConnectTimeout is time in milliseconds
+    // Timeout (milliseconds) represents the amount of time a connection has to establish itself before
+    // UDC_EVENT_CONNECTION_TIMEOUT is called and the connection is aborted.
+    // Timeout also represents the amount of time that the server can receive no messages (including ping tests)
+    // from the client before calling UDC_EVENT_CONNECTION_LOST and trying to reestablish a connection.
     bool udcTryConnect(
         UdcServer* server,
         const char* nodeName,

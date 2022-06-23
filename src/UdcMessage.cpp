@@ -45,6 +45,20 @@ void udcGenerateMessage(std::vector<uint8_t>& msg, const UdcMsgConnection& body,
     memcpy(ptr, &body.serverId, sizeof(UdcEndPointId::bytes));
 }
 
+void udcGenerateMessage(std::vector<uint8_t>& msg, const UdcMsgPingPong& body, UdcSignature signature, UdcMessageId messageId)
+{
+    msg.resize(UDC_MSG_PING_PONG_SIZE);
+    udcGenerateHeader(msg, signature, messageId);
+
+    uint8_t* ptr = msg.data() + UDC_MSG_HEADER_SIZE;
+
+    memcpy(ptr, &body.clientId, sizeof(UdcEndPointId::bytes));
+    ptr += sizeof(UdcEndPointId::bytes);
+
+    uint32_t time = htonl(body.timeOnServer);
+    memcpy(ptr, &time, sizeof(UdcMsgPingPong::timeOnServer));
+}
+
 bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgConnection& dst)
 {
     if (src.size() != UDC_MSG_CONNECTION_SIZE)
@@ -58,6 +72,25 @@ bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgConnection& dst)
     ptr += sizeof(UdcEndPointId::bytes);
 
     memcpy(&dst.serverId, ptr, sizeof(UdcEndPointId::bytes));
+
+    return true;
+}
+
+bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgPingPong& dst)
+{
+    if (src.size() != UDC_MSG_PING_PONG_SIZE)
+    {
+        return false;
+    }
+
+    const uint8_t* ptr = src.data() + UDC_MSG_HEADER_SIZE;
+
+    memcpy(&dst.clientId, ptr, sizeof(UdcEndPointId::bytes));
+    ptr += sizeof(UdcEndPointId::bytes);
+
+    uint32_t time;
+    memcpy(&time, ptr, sizeof(UdcMsgPingPong::timeOnServer));
+    dst.timeOnServer = htonl(time);
 
     return true;
 }

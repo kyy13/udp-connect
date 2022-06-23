@@ -10,6 +10,7 @@
 #include <cstring>
 #include <chrono>
 #include <cassert>
+#include <cmath>
 
 UdcServer* udcCreateServer(
     uint32_t signature,
@@ -44,6 +45,58 @@ UdcServer* udcCreateServer(
 void udcDeleteServer(UdcServer* server)
 {
     delete server;
+}
+
+// UDC_MSG_PING
+bool trySendPing(UdcServer* server, UdcConnection& client, UdcEvent& event)
+{
+    const auto pingPeriod = std::min(
+        std::chrono::milliseconds(500),
+        client.tryConnectTimeout / 10);
+
+    const auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch());
+
+    // Check if enough time has elapsed to send another ping
+    const auto deltaPing = currentTime - client.pingPrevTime;
+    if (deltaPing >= pingPeriod)
+    {
+        // Send connection request
+        const UdcMsgPingPong msgPingPong =
+            {
+                .clientId = client.id,
+                .timeOnServer = static_cast<uint32_t>(currentTime.count()),
+            };
+
+        udcGenerateMessage(
+            server->messageBuffer,
+            msgPingPong,
+            server->signature,
+            UDC_MSG_PING);
+
+        if (client.addressFamily == UDC_IPV6)
+        {
+            server->socket.send(client.addressIPv6, client.port, server->messageBuffer);
+        }
+        else if (client.addressFamily == UDC_IPV4)
+        {
+            server->socket.send(client.addressIPv4, client.port, server->messageBuffer);
+        }
+
+        client.pingPrevTime = currentTime;
+    }
+
+    // Check if enough time has elapsed since last pong to have a lost connection
+    const auto deltaPong = currentTime - client.pongPrevTime;
+    if (deltaPong >= client.tryConnectTimeout)
+    {
+        event.eventType = UDC_EVENT_CONNECTION_LOST;
+        event.endPointId = client.id;
+        client.isConnected = false;
+        return true;
+    }
+
+    return false;
 }
 
 // UDC_MSG_CONNECTION_REQUEST
@@ -101,6 +154,60 @@ bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent
     }
 
     return false;
+}
+
+// UDC_MSG_PING
+template<class T>
+void tryReadPing(UdcServer* server, const T& address, uint16_t port)
+{
+    UdcMsgPingPong msg;
+
+    // Parse the message
+    if (!udcReadMessage(server->messageBuffer, msg))
+    {
+        return;
+    }
+
+    // Generate a pong response
+    udcGenerateMessage(
+        server->messageBuffer,
+        msg,
+        server->signature,
+        UDC_MSG_PONG);
+
+    // Send pong
+    server->socket.send(address, port, server->messageBuffer);
+}
+
+// UDC_MSG_PONG
+template<class T>
+void tryReadPong(UdcServer* server, const T& address, uint16_t port)
+{
+    UdcMsgPingPong msg;
+
+    // Parse the message
+    if (!udcReadMessage(server->messageBuffer, msg))
+    {
+        return;
+    }
+
+    auto it = server->clients.find(msg.clientId);
+
+    if (it != server->clients.end())
+    {
+        auto& client = it->second;
+
+        auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch());
+
+        auto pingTime = std::chrono::milliseconds(msg.timeOnServer);
+
+        if (currentTime > pingTime)
+        {
+            client->pingValue = currentTime - pingTime;
+            client->pongPrevTime = currentTime;
+        }
+    }
 }
 
 // UDC_MSG_CONNECTION_REQUEST
@@ -172,6 +279,8 @@ bool tryReadConnectionHandshake(UdcServer* server, const T& address, UdcEvent& e
         event.nodeName = client->nodeName.c_str();
         event.serviceName = client->serviceName.c_str();
 
+        client->isConnected = true;
+
         server->clients[msg.clientId] = std::move(client);
         server->pendingClients.pop();
 
@@ -210,6 +319,12 @@ bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
             return false;
         case UDC_MSG_CONNECTION_HANDSHAKE:
             return tryReadConnectionHandshake(server, address, event);
+        case UDC_MSG_PING:
+            tryReadPing(server, address, port);
+            return false;
+        case UDC_MSG_PONG:
+            tryReadPong(server, address, port);
+            return false;
         case UDC_MSG_EXTERNAL:
             return false;
         }
@@ -231,6 +346,7 @@ bool udcTryConnect(
 
     auto clientInfo = std::make_unique<UdcConnection>();
 
+    clientInfo->isConnected = false;
     clientInfo->nodeName = nodeName;
     clientInfo->serviceName = serviceName;
 
@@ -270,6 +386,15 @@ UdcEvent* udcProcessEvents(UdcServer* server)
     if (!server->pendingClients.empty())
     {
         if (trySendConnectionRequest(server, *server->pendingClients.front(), server->event))
+        {
+            return &server->event;
+        }
+    }
+
+    // Send pings
+    for (auto& pair : server->clients)
+    {
+        if (trySendPing(server, *pair.second, server->event))
         {
             return &server->event;
         }
