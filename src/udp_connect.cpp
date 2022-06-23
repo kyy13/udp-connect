@@ -180,15 +180,14 @@ void tryReadPing(UdcServer* server, const T& address, uint16_t port)
 }
 
 // UDC_MSG_PONG
-template<class T>
-void tryReadPong(UdcServer* server, const T& address, uint16_t port)
+bool tryReadPong(UdcServer* server, UdcEvent& event)
 {
     UdcMsgPingPong msg;
 
     // Parse the message
     if (!udcReadMessage(server->messageBuffer, msg))
     {
-        return;
+        return false;
     }
 
     auto it = server->clients.find(msg.clientId);
@@ -202,12 +201,29 @@ void tryReadPong(UdcServer* server, const T& address, uint16_t port)
 
         auto pingTime = std::chrono::milliseconds(msg.timeOnServer);
 
-        if (currentTime > pingTime)
+        // check that time is valid
+        if (currentTime < pingTime)
         {
-            client->pingValue = currentTime - pingTime;
-            client->pongPrevTime = currentTime;
+            return false;
+        }
+
+        // Calculate ping value and set the pong timer
+        client->pingValue = currentTime - pingTime;
+        client->pongPrevTime = currentTime;
+
+        // If client connection was lost, then the client has now regained connection
+        if (!client->isConnected)
+        {
+            client->isConnected = true;
+
+            event.eventType = UDC_EVENT_CONNECTION_REGAINED;
+            event.endPointId = client->id;
+
+            return true;
         }
     }
+
+    return false;
 }
 
 // UDC_MSG_CONNECTION_REQUEST
@@ -323,8 +339,7 @@ bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
             tryReadPing(server, address, port);
             return false;
         case UDC_MSG_PONG:
-            tryReadPong(server, address, port);
-            return false;
+            return tryReadPong(server, event);
         case UDC_MSG_EXTERNAL:
             return false;
         }
