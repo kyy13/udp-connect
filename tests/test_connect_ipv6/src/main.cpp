@@ -64,6 +64,11 @@ int main()
                 udcDeleteServer(nodeA);
                 udcDeleteServer(nodeB);
                 return 0;
+            case UDC_EVENT_CONNECTION_TIMEOUT:
+                udcDeleteServer(nodeA);
+                udcDeleteServer(nodeB);
+                std::cout << "connection timed out\n";
+                return -1;
             default:
                 break;
             }

@@ -10,7 +10,7 @@
 int main()
 {
     // Create nodeA
-    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345, "test_connect_ipv4_logA.txt");
+    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345, "test_timeout_ipv6_logA.txt");
 
     if (nodeA == nullptr)
     {
@@ -18,22 +18,11 @@ int main()
         return -1;
     }
 
-    // Create nodeB
-    UdcServer* nodeB = udcCreateServer(0x01020304, 1235, 2346, "test_connect_ipv4_logB.txt");
-
-    if (nodeB == nullptr)
-    {
-        std::cout << "failed to create Node B\n";
-        udcDeleteServer(nodeA);
-        return -1;
-    }
-
-    // Connect nodeA to nodeB
-    if (!udcTryConnect(nodeA, "127.0.0.1", "2346", 1000))
+    // Connect nodeA to another port that's not running a server, so it will time out
+    if (!udcTryConnect(nodeA, "::1", "1235", 1000))
     {
         std::cout << "failed to initiate connection from A to B\n";
         udcDeleteServer(nodeA);
-        udcDeleteServer(nodeB);
         return -1;
     }
 
@@ -50,8 +39,7 @@ int main()
         if (dt >= std::chrono::seconds(5))
         {
             udcDeleteServer(nodeA);
-            udcDeleteServer(nodeB);
-            std::cout << "failed to fully connect\n";
+            std::cout << "failed to call timeout\n";
             return -1;
         }
 
@@ -62,19 +50,14 @@ int main()
             {
             case UDC_EVENT_CONNECTION_SUCCESS:
                 udcDeleteServer(nodeA);
-                udcDeleteServer(nodeB);
-                return 0;
+                std::cout << "somehow connected?\n";
+                return -1;
             case UDC_EVENT_CONNECTION_TIMEOUT:
                 udcDeleteServer(nodeA);
-                udcDeleteServer(nodeB);
-                std::cout << "connection timed out\n";
-                return -1;
+                return 0;
             default:
                 break;
             }
         }
-
-        // Receive from nodeB
-        while (udcProcessEvents(nodeB) != nullptr);
     }
 }

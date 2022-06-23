@@ -6,10 +6,10 @@
 #include "UdcServer.h"
 #include "UdcMessage.h"
 #include "UdcEndPointId.h"
-#include "UdcEvent.h"
 
 #include <cstring>
 #include <chrono>
+#include <cassert>
 
 UdcServer* udcCreateServer(
     uint32_t signature,
@@ -46,61 +46,34 @@ void udcDeleteServer(UdcServer* server)
     delete server;
 }
 
-bool udcTryConnect(
-    UdcServer* server,
-    const char* nodeName,
-    const char* serviceName,
-    uint32_t timeout)
-{
-    if (server == nullptr || timeout == 0)
-    {
-        return false;
-    }
-
-    auto clientInfo = std::make_unique<UdcConnection>();
-
-    clientInfo->nodeName = nodeName;
-    clientInfo->serviceName = serviceName;
-
-    // Get address
-    // Create preliminary device ID
-    if (UdcSocket::stringToIPv6(nodeName, serviceName, clientInfo->addressIPv6, clientInfo->port))
-    {
-        clientInfo->addressFamily = UDC_IPV6;
-        clientInfo->id = newEndPointId(clientInfo->addressIPv6, clientInfo->port);
-    }
-    else if (UdcSocket::stringToIPv4(nodeName, serviceName, clientInfo->addressIPv4, clientInfo->port))
-    {
-        clientInfo->addressFamily = UDC_IPV4;
-        clientInfo->id = newEndPointId(clientInfo->addressIPv4, clientInfo->port);
-    }
-    else
-    {
-        return false;
-    }
-
-    auto time = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch());
-
-    clientInfo->timeout = std::chrono::milliseconds {timeout};
-    clientInfo->tryConnectTime = time;
-    clientInfo->lastSendTime = time;
-
-    // Add to pending
-    server->pendingClients.push(std::move(clientInfo));
-
-    return true;
-}
-
 // UDC_MSG_CONNECTION_REQUEST
-void trySendConnectionRequest(UdcServer* server, UdcConnection& client)
+bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent& event)
 {
-    constexpr auto clientInternalSendTime = std::chrono::milliseconds {200};
+    assert(!server->pendingClients.empty());
+
+    constexpr auto tryConnectSendPeriod = std::chrono::milliseconds {100};
 
     auto time = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
 
-    if ((time - client.lastSendTime) >= clientInternalSendTime)
+    // Check if trying to connect is taking too long
+    auto totalTime = time - client.tryConnectFirstTime;
+    if (totalTime >= client.tryConnectTimeout)
+    {
+        // Send a timeout event
+        event.eventType = UDC_EVENT_CONNECTION_TIMEOUT;
+        event.nodeName = client.nodeName.c_str();
+        event.serviceName = client.serviceName.c_str();
+
+        // Timed-out, remove pending client from the queue
+        server->pendingClients.pop();
+
+        return true;
+    }
+
+    // Check if it has been long enough to send another connection request
+    auto deltaTime = time - client.tryConnectPrevTime;
+    if (deltaTime >= tryConnectSendPeriod)
     {
         // Send connection request
         const UdcMsgConnection msgConnectionRequest =
@@ -124,8 +97,10 @@ void trySendConnectionRequest(UdcServer* server, UdcConnection& client)
             server->socket.send(client.addressIPv4, client.port, server->messageBuffer);
         }
 
-        client.lastSendTime = time;
+        client.tryConnectPrevTime = time;
     }
+
+    return false;
 }
 
 // UDC_MSG_CONNECTION_REQUEST
@@ -230,39 +205,86 @@ bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
         // Handle message
         switch(msgId)
         {
-            case UDC_MSG_CONNECTION_REQUEST:
-                tryReadConnectionRequest(server, address, port);
-                return false;
-            case UDC_MSG_CONNECTION_HANDSHAKE:
-                return tryReadConnectionHandshake(server, address, event);
-            case UDC_MSG_EXTERNAL:
-                return false;
+        case UDC_MSG_CONNECTION_REQUEST:
+            tryReadConnectionRequest(server, address, port);
+            return false;
+        case UDC_MSG_CONNECTION_HANDSHAKE:
+            return tryReadConnectionHandshake(server, address, event);
+        case UDC_MSG_EXTERNAL:
+            return false;
         }
     }
 
     return false;
 }
 
+bool udcTryConnect(
+    UdcServer* server,
+    const char* nodeName,
+    const char* serviceName,
+    uint32_t timeout)
+{
+    if (server == nullptr || timeout == 0)
+    {
+        return false;
+    }
+
+    auto clientInfo = std::make_unique<UdcConnection>();
+
+    clientInfo->nodeName = nodeName;
+    clientInfo->serviceName = serviceName;
+
+    // Get address
+    // Create preliminary device ID
+    if (UdcSocket::stringToIPv6(nodeName, serviceName, clientInfo->addressIPv6, clientInfo->port))
+    {
+        clientInfo->addressFamily = UDC_IPV6;
+        clientInfo->id = newEndPointId(clientInfo->addressIPv6, clientInfo->port);
+    }
+    else if (UdcSocket::stringToIPv4(nodeName, serviceName, clientInfo->addressIPv4, clientInfo->port))
+    {
+        clientInfo->addressFamily = UDC_IPV4;
+        clientInfo->id = newEndPointId(clientInfo->addressIPv4, clientInfo->port);
+    }
+    else
+    {
+        return false;
+    }
+
+    auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch());
+
+    clientInfo->tryConnectTimeout = std::chrono::milliseconds(timeout);
+    clientInfo->tryConnectFirstTime = currentTime;
+    clientInfo->tryConnectPrevTime = std::chrono::milliseconds(0);
+
+    // Add to pending
+    server->pendingClients.push(std::move(clientInfo));
+
+    return true;
+}
+
 UdcEvent* udcProcessEvents(UdcServer* server)
 {
-    static UdcEvent event;
-
     // Send outgoing pending connection requests
     if (!server->pendingClients.empty())
     {
-        trySendConnectionRequest(server, *server->pendingClients.front());
+        if (trySendConnectionRequest(server, *server->pendingClients.front(), server->event))
+        {
+            return &server->event;
+        }
     }
 
     // Receive IPv6
-    if (udcReceiveMessage<UdcAddressIPv6>(server, event))
+    if (udcReceiveMessage<UdcAddressIPv6>(server, server->event))
     {
-        return &event;
+        return &server->event;
     }
 
     // Receive IPv4
-    if (udcReceiveMessage<UdcAddressIPv4>(server, event))
+    if (udcReceiveMessage<UdcAddressIPv4>(server, server->event))
     {
-        return &event;
+        return &server->event;
     }
 
     return nullptr;

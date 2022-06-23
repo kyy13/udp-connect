@@ -9,6 +9,7 @@
 #include "UdcEndPointId.h"
 #include "UdcPacketLogger.h"
 #include "UdcConnection.h"
+#include "UdcEvent.h"
 
 #include <memory>
 #include <vector>
@@ -27,6 +28,8 @@ struct UdcServer
     UdcSignature signature;
 
     UdcSocketMux socket;
+
+    UdcEvent event;
 
     // Maps temporary device ID to clients pending connection
     std::queue<std::unique_ptr<UdcConnection>> pendingClients;

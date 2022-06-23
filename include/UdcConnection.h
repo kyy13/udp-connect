@@ -30,9 +30,9 @@ struct UdcConnection
         UdcAddressIPv6 addressIPv6;
     };
 
-    std::chrono::milliseconds timeout;
-    std::chrono::milliseconds tryConnectTime;
-    std::chrono::milliseconds lastSendTime;
+    std::chrono::milliseconds tryConnectTimeout;
+    std::chrono::milliseconds tryConnectFirstTime;
+    std::chrono::milliseconds tryConnectPrevTime;
 };
 
 #endif

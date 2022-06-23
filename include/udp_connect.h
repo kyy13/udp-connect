@@ -45,7 +45,7 @@ extern "C"
     void udcDeleteServer(UdcServer* server);
 
     // Try to connect to a client from a server
-    // timeout is time in milliseconds
+    // tryConnectTimeout is time in milliseconds
     bool udcTryConnect(
         UdcServer* server,
         const char* nodeName,
