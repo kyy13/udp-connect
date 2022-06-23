@@ -87,8 +87,8 @@ bool trySendPing(UdcServer* server, UdcConnection& client, UdcEvent& event)
     }
 
     // Check if enough time has elapsed since last pong to have a lost connection
-    const auto deltaPong = currentTime - client.pongPrevTime;
-    if (deltaPong >= client.tryConnectTimeout)
+    const auto deltaReceived = currentTime - client.recvPrevTime;
+    if (deltaReceived >= client.tryConnectTimeout && client.isConnected)
     {
         event.eventType = UDC_EVENT_CONNECTION_LOST;
         event.endPointId = client.id;
@@ -106,11 +106,11 @@ bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent
 
     constexpr auto tryConnectSendPeriod = std::chrono::milliseconds {100};
 
-    auto time = std::chrono::duration_cast<std::chrono::milliseconds>(
+    auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
 
     // Check if trying to connect is taking too long
-    auto totalTime = time - client.tryConnectFirstTime;
+    auto totalTime = currentTime - client.tryConnectFirstTime;
     if (totalTime >= client.tryConnectTimeout)
     {
         // Send a timeout event
@@ -125,7 +125,7 @@ bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent
     }
 
     // Check if it has been long enough to send another connection request
-    auto deltaTime = time - client.tryConnectPrevTime;
+    auto deltaTime = currentTime - client.tryConnectPrevTime;
     if (deltaTime >= tryConnectSendPeriod)
     {
         // Send connection request
@@ -150,7 +150,7 @@ bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent
             server->socket.send(client.addressIPv4, client.port, server->messageBuffer);
         }
 
-        client.tryConnectPrevTime = time;
+        client.tryConnectPrevTime = currentTime;
     }
 
     return false;
@@ -171,7 +171,16 @@ void tryReadPing(UdcServer* server, const T& address, uint16_t port)
     // Validate that the client is this one
     if (!cmpEndPointId(msg.clientId, server->id))
     {
-        return;
+        // Allow the msg to assign server ID in the case that the server was deleted
+        // and re-instantiated (id reset to 0)
+        if (isNullEndPointId(server->id))
+        {
+            server->id = msg.clientId;
+        }
+        else
+        {
+            return;
+        }
     }
 
     // Generate a pong response
@@ -215,7 +224,9 @@ bool tryReadPong(UdcServer* server, UdcEvent& event)
 
         // Calculate ping value and set the pong timer
         client->pingValue = currentTime - pingTime;
-        client->pongPrevTime = currentTime;
+
+        // Count as message received from client
+        client->recvPrevTime = currentTime;
 
         // If client connection was lost, then the client has now regained connection
         if (!client->isConnected)
@@ -301,7 +312,11 @@ bool tryReadConnectionHandshake(UdcServer* server, const T& address, UdcEvent& e
         event.nodeName = client->nodeName.c_str();
         event.serviceName = client->serviceName.c_str();
 
+        auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch());
+
         client->isConnected = true;
+        client->recvPrevTime = currentTime;
 
         server->clients[msg.clientId] = std::move(client);
         server->pendingClients.pop();

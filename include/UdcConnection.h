@@ -35,6 +35,8 @@ struct UdcConnection
         UdcAddressIPv6 addressIPv6;
     };
 
+    std::chrono::milliseconds recvPrevTime; // last time that any message was received at
+
     // tryConnect timing
     std::chrono::milliseconds tryConnectTimeout;
     std::chrono::milliseconds tryConnectFirstTime;
@@ -42,7 +44,6 @@ struct UdcConnection
 
     // ping timing
     std::chrono::milliseconds pingValue; // the last retrieved ping value
-    std::chrono::milliseconds pongPrevTime; // last time that a pong was received at
     std::chrono::milliseconds pingPrevTime; // last time a ping was sent
 };
 
