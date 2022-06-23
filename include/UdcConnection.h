@@ -5,7 +5,7 @@
 #define UDC_CONNECTION_H
 
 #include "udp_connect.h"
-#include "UdcEndPointId.h"
+#include "UdcTypes.h"
 
 #include <cstdint>
 #include <string>

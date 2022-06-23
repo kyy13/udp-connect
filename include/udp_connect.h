@@ -37,11 +37,8 @@ extern "C"
         UDC_EVENT_RECEIVE_MESSAGE,
     };
 
-    // A globally unique identifier for a service
-    struct UdcEndPointId
-    {
-        uint8_t bytes[20];
-    };
+    // A locally unique identifier for a node
+    using UdcEndPointId = uint32_t;
 
     // Packet signature
     using UdcSignature = uint32_t;
@@ -50,7 +47,7 @@ extern "C"
     // messages from remote clients
     // returns nullptr if it fails to connect
     UdcServer* udcCreateServer(
-        uint32_t signature,
+        UdcSignature signature,
         uint16_t portIPv6,
         uint16_t portIPv4,
         const char* logFileName);
@@ -67,7 +64,8 @@ extern "C"
         UdcServer* server,
         const char* nodeName,
         const char* serviceName,
-        uint32_t timeout);
+        uint32_t timeout,
+        UdcEndPointId& endPointId);
 
     // Main update loop
     // process events until nullptr is returned

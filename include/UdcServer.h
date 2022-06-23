@@ -6,7 +6,6 @@
 
 #include "udp_connect.h"
 #include "UdcSocketMux.h"
-#include "UdcEndPointId.h"
 #include "UdcPacketLogger.h"
 #include "UdcConnection.h"
 #include "UdcEvent.h"
@@ -23,7 +22,7 @@ struct UdcServer
 
     UdcServer(const std::string& logFileName);
 
-    UdcEndPointId id;
+    UdcEndPointId idCounter;
 
     UdcSignature signature;
 
@@ -35,7 +34,7 @@ struct UdcServer
     std::queue<std::unique_ptr<UdcConnection>> pendingClients;
 
     // Maps device ID to connected clients
-    std::unordered_map<UdcEndPointId, std::unique_ptr<UdcConnection>, UdcEndPointIdHasher, UdcEndPointIdComparator> clients;
+    std::unordered_map<UdcEndPointId, std::unique_ptr<UdcConnection>> clients;
 
     // Message Buffer
     std::vector<uint8_t> messageBuffer;

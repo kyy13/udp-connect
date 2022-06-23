@@ -19,7 +19,8 @@ int main()
     }
 
     // Connect nodeA to another port that's not running a server, so it will time out
-    if (!udcTryConnect(nodeA, "127.0.0.1", "2346", 1000))
+    UdcEndPointId id;
+    if (!udcTryConnect(nodeA, "127.0.0.1", "2346", 1000, id))
     {
         std::cout << "failed to initiate connection from A to B\n";
         udcDeleteServer(nodeA);

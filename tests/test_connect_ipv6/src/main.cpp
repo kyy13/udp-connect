@@ -29,7 +29,8 @@ int main()
     }
 
     // Connect nodeA to nodeB
-    if (!udcTryConnect(nodeA, "::1", "1235", 1000))
+    UdcEndPointId id;
+    if (!udcTryConnect(nodeA, "::1", "1235", 1000, id))
     {
         std::cout << "failed to initiate connection from A to B\n";
         udcDeleteServer(nodeA);

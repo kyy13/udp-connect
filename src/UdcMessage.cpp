@@ -39,10 +39,7 @@ void udcGenerateMessage(std::vector<uint8_t>& msg, const UdcMsgConnection& body,
 
     uint8_t* ptr = msg.data() + UDC_MSG_HEADER_SIZE;
 
-    memcpy(ptr, &body.clientId, sizeof(UdcEndPointId::bytes));
-    ptr += sizeof(UdcEndPointId::bytes);
-
-    memcpy(ptr, &body.serverId, sizeof(UdcEndPointId::bytes));
+    memcpy(ptr, &body.clientId, sizeof(UdcEndPointId));
 }
 
 void udcGenerateMessage(std::vector<uint8_t>& msg, const UdcMsgPingPong& body, UdcSignature signature, UdcMessageId messageId)
@@ -52,8 +49,8 @@ void udcGenerateMessage(std::vector<uint8_t>& msg, const UdcMsgPingPong& body, U
 
     uint8_t* ptr = msg.data() + UDC_MSG_HEADER_SIZE;
 
-    memcpy(ptr, &body.clientId, sizeof(UdcEndPointId::bytes));
-    ptr += sizeof(UdcEndPointId::bytes);
+    memcpy(ptr, &body.clientId, sizeof(UdcEndPointId));
+    ptr += sizeof(UdcEndPointId);
 
     uint32_t time = htonl(body.timeOnServer);
     memcpy(ptr, &time, sizeof(UdcMsgPingPong::timeOnServer));
@@ -68,10 +65,7 @@ bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgConnection& dst)
 
     const uint8_t* ptr = src.data() + UDC_MSG_HEADER_SIZE;
 
-    memcpy(&dst.clientId, ptr, sizeof(UdcEndPointId::bytes));
-    ptr += sizeof(UdcEndPointId::bytes);
-
-    memcpy(&dst.serverId, ptr, sizeof(UdcEndPointId::bytes));
+    memcpy(&dst.clientId, ptr, sizeof(UdcEndPointId));
 
     return true;
 }
@@ -85,8 +79,8 @@ bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgPingPong& dst)
 
     const uint8_t* ptr = src.data() + UDC_MSG_HEADER_SIZE;
 
-    memcpy(&dst.clientId, ptr, sizeof(UdcEndPointId::bytes));
-    ptr += sizeof(UdcEndPointId::bytes);
+    memcpy(&dst.clientId, ptr, sizeof(UdcEndPointId));
+    ptr += sizeof(UdcEndPointId);
 
     uint32_t time;
     memcpy(&time, ptr, sizeof(UdcMsgPingPong::timeOnServer));

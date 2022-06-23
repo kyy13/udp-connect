@@ -5,7 +5,6 @@
 
 #include "UdcServer.h"
 #include "UdcMessage.h"
-#include "UdcEndPointId.h"
 
 #include <cstring>
 #include <chrono>
@@ -37,6 +36,7 @@ UdcServer* udcCreateServer(
         return nullptr;
     }
 
+    server->idCounter = 0;
     server->signature = signature;
 
     return server;
@@ -132,7 +132,6 @@ bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent
         const UdcMsgConnection msgConnectionRequest =
             {
                 .clientId = client.id,
-                .serverId = server->id,
             };
 
         udcGenerateMessage(
@@ -168,20 +167,20 @@ void tryReadPing(UdcServer* server, const T& address, uint16_t port)
         return;
     }
 
-    // Validate that the client is this one
-    if (!cmpEndPointId(msg.clientId, server->id))
-    {
-        // Allow the msg to assign server ID in the case that the server was deleted
-        // and re-instantiated (id reset to 0)
-        if (isNullEndPointId(server->id))
-        {
-            server->id = msg.clientId;
-        }
-        else
-        {
-            return;
-        }
-    }
+//    // Validate that the client is this one
+//    if (!cmpEndPointId(msg.clientId, server->id))
+//    {
+//        // Allow the msg to assign server ID in the case that the server was deleted
+//        // and re-instantiated (id reset to 0)
+//        if (isNullEndPointId(server->id))
+//        {
+//            server->id = msg.clientId;
+//        }
+//        else
+//        {
+//            return;
+//        }
+//    }
 
     // Generate a pong response
     udcGenerateMessage(
@@ -255,21 +254,21 @@ void tryReadConnectionRequest(UdcServer* server, const T& address, uint16_t port
         return;
     }
 
-    // If this server doesn't know its ID, then grab it from the connection request
-    if (isNullEndPointId(server->id))
-    {
-        server->id = msg.clientId;
-    }
-    else // Otherwise, send this server's ID
-    {
-        msg.clientId = server->id;
-    }
+//    // If this server doesn't know its ID, then grab it from the connection request
+//    if (isNullEndPointId(server->id))
+//    {
+//        server->id = msg.clientId;
+//    }
+//    else // Otherwise, send this server's ID
+//    {
+//        msg.clientId = server->id;
+//    }
 
-    // If the client doesn't know its ID, then generate one for it
-    if (isNullEndPointId(msg.serverId))
-    {
-        msg.serverId = newEndPointId(address, port);
-    }
+//    // If the client doesn't know its ID, then generate one for it
+//    if (isNullEndPointId(msg.serverId))
+//    {
+//        msg.serverId = newEndPointId(address, port);
+//    }
 
     // Generate a handshake response
     udcGenerateMessage(
@@ -301,9 +300,8 @@ bool tryReadConnectionHandshake(UdcServer* server, const T& address, UdcEvent& e
         return false;
     }
 
-    // Check for matching server IDs and client IDs
-    if (cmpEndPointId(server->id, msg.serverId) &&
-        cmpEndPointId(server->pendingClients.front()->id, msg.clientId))
+    // Check for matching client ID
+    if (server->pendingClients.front()->id == msg.clientId)
     {
         auto& client = server->pendingClients.front();
 
@@ -324,11 +322,11 @@ bool tryReadConnectionHandshake(UdcServer* server, const T& address, UdcEvent& e
         return true;
     }
 
-    // If this server doesn't know its ID, then grab it from the handshake
-    if (isNullEndPointId(server->id))
-    {
-        server->id = msg.serverId;
-    }
+//    // If this server doesn't know its ID, then grab it from the handshake
+//    if (isNullEndPointId(server->id))
+//    {
+//        server->id = msg.serverId;
+//    }
 
     return false;
 }
@@ -373,7 +371,8 @@ bool udcTryConnect(
     UdcServer* server,
     const char* nodeName,
     const char* serviceName,
-    uint32_t timeout)
+    uint32_t timeout,
+    UdcEndPointId& endPointId)
 {
     if (server == nullptr || timeout == 0)
     {
@@ -382,21 +381,25 @@ bool udcTryConnect(
 
     auto clientInfo = std::make_unique<UdcConnection>();
 
+    clientInfo->id = server->idCounter;
+    ++server->idCounter;
+
     clientInfo->isConnected = false;
     clientInfo->nodeName = nodeName;
     clientInfo->serviceName = serviceName;
 
     // Get address
-    // Create preliminary device ID
     if (UdcSocket::stringToIPv6(nodeName, serviceName, clientInfo->addressIPv6, clientInfo->port))
     {
         clientInfo->addressFamily = UDC_IPV6;
-        clientInfo->id = newEndPointId(clientInfo->addressIPv6, clientInfo->port);
+//        clientInfo->id = server->idCounter;
+//        ++server->idCounter;
     }
     else if (UdcSocket::stringToIPv4(nodeName, serviceName, clientInfo->addressIPv4, clientInfo->port))
     {
         clientInfo->addressFamily = UDC_IPV4;
-        clientInfo->id = newEndPointId(clientInfo->addressIPv4, clientInfo->port);
+//        clientInfo->id = server->idCounter;
+//        ++server->idCounter;
     }
     else
     {

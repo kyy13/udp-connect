@@ -3,6 +3,4 @@
 
 #include "UdcConnection.h"
 
-UdcConnection::UdcConnection()
-    : id({})
-{}
+UdcConnection::UdcConnection() = default;

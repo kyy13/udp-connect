@@ -21,7 +21,6 @@ enum UdcMessageId : uint8_t
 struct UdcMsgConnection
 {
     UdcEndPointId clientId;
-    UdcEndPointId serverId;
 };
 
 struct UdcMsgPingPong
@@ -36,11 +35,11 @@ constexpr size_t UDC_MSG_HEADER_SIZE =
 
 constexpr size_t UDC_MSG_CONNECTION_SIZE =
     UDC_MSG_HEADER_SIZE +
-    2 * sizeof(UdcEndPointId::bytes);
+    sizeof(UdcEndPointId);
 
 constexpr size_t UDC_MSG_PING_PONG_SIZE =
     UDC_MSG_HEADER_SIZE +
-    sizeof(UdcMsgPingPong::clientId.bytes) +
+    sizeof(UdcMsgPingPong::clientId) +
     sizeof(UdcMsgPingPong::timeOnServer);
 
 void udcGenerateHeader(std::vector<uint8_t>& msg, UdcSignature signature, UdcMessageId messageId);
