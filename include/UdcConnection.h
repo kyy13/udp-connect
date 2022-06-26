@@ -23,8 +23,8 @@ struct UdcConnection
     bool isConnected;
 
     // Input address data
-    std::string nodeName;
-    std::string serviceName;
+//    std::string nodeName;
+//    std::string serviceName;
 
     // Address Data
     uint16_t port;

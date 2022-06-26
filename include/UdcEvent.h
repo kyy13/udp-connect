@@ -10,8 +10,15 @@ struct UdcEvent
 {
     UdcEventType eventType;
     UdcEndPointId endPointId;
-    const char* nodeName;
-    const char* serviceName;
+    UdcAddressFamily addressFamily;
+
+    union
+    {
+        UdcAddressIPv4 addressIPv4;
+        UdcAddressIPv6 addressIPv6;
+    };
+
+    uint16_t port;
     const uint8_t* buffer;
 };
 

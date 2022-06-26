@@ -47,6 +47,24 @@ void udcDeleteServer(UdcServer* server)
     delete server;
 }
 
+bool udcTryParseAddressIPv4(
+    const char* nodeName,
+    const char* serviceName,
+    UdcAddressIPv4& address,
+    uint16_t& port)
+{
+    return UdcSocket::stringToIPv4(nodeName, serviceName, address, port);
+}
+
+bool udcTryParseAddressIPv6(
+    const char* nodeName,
+    const char* serviceName,
+    UdcAddressIPv6& address,
+    uint16_t& port)
+{
+    return UdcSocket::stringToIPv6(nodeName, serviceName, address, port);
+}
+
 // UDC_MSG_PING
 bool trySendPing(UdcServer* server, UdcConnection& client, UdcEvent& event)
 {
@@ -115,8 +133,18 @@ bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent
     {
         // Send a timeout event
         event.eventType = UDC_EVENT_CONNECTION_TIMEOUT;
-        event.nodeName = client.nodeName.c_str();
-        event.serviceName = client.serviceName.c_str();
+        event.addressFamily = client.addressFamily;
+
+        if (client.addressFamily == UDC_IPV6)
+        {
+            event.addressIPv6 = client.addressIPv6;
+        }
+        else
+        {
+            event.addressIPv4 = client.addressIPv4;
+        }
+
+        event.port = client.port;
 
         // Timed-out, remove pending client from the queue
         server->pendingClients.pop();
@@ -307,8 +335,19 @@ bool tryReadConnectionHandshake(UdcServer* server, const T& address, UdcEvent& e
 
         event.eventType = UDC_EVENT_CONNECTION_SUCCESS;
         event.endPointId = msg.clientId;
-        event.nodeName = client->nodeName.c_str();
-        event.serviceName = client->serviceName.c_str();
+
+        if constexpr (std::is_same<T, UdcAddressIPv4>::value)
+        {
+            event.addressFamily = UDC_IPV4;
+            event.addressIPv4 = address;
+        }
+        else
+        {
+            event.addressFamily = UDC_IPV6;
+            event.addressIPv6 = address;
+        }
+
+        event.port = client->port;
 
         auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch());
@@ -321,12 +360,6 @@ bool tryReadConnectionHandshake(UdcServer* server, const T& address, UdcEvent& e
 
         return true;
     }
-
-//    // If this server doesn't know its ID, then grab it from the handshake
-//    if (isNullEndPointId(server->id))
-//    {
-//        server->id = msg.serverId;
-//    }
 
     return false;
 }
@@ -374,34 +407,34 @@ bool udcTryConnect(
     uint32_t timeout,
     UdcEndPointId& endPointId)
 {
+    uint16_t port;
+
+    union
+    {
+        UdcAddressIPv4 ipv4;
+        UdcAddressIPv6 ipv6;
+    };
+
+    if (UdcSocket::stringToIPv6(nodeName, serviceName, ipv6, port))
+    {
+        return udcTryConnectIPv6(server, ipv6, port, timeout, endPointId);
+    }
+    else if (UdcSocket::stringToIPv4(nodeName, serviceName, ipv4, port))
+    {
+        return udcTryConnectIPv4(server, ipv4, port, timeout, endPointId);
+    }
+
+    return false;
+}
+
+bool udcTryConnectIPv4(
+    UdcServer* server,
+    const UdcAddressIPv4& ip,
+    uint16_t port,
+    uint32_t timeout,
+    UdcEndPointId& endPointId)
+{
     if (server == nullptr || timeout == 0)
-    {
-        return false;
-    }
-
-    auto clientInfo = std::make_unique<UdcConnection>();
-
-    clientInfo->id = server->idCounter;
-    ++server->idCounter;
-
-    clientInfo->isConnected = false;
-    clientInfo->nodeName = nodeName;
-    clientInfo->serviceName = serviceName;
-
-    // Get address
-    if (UdcSocket::stringToIPv6(nodeName, serviceName, clientInfo->addressIPv6, clientInfo->port))
-    {
-        clientInfo->addressFamily = UDC_IPV6;
-//        clientInfo->id = server->idCounter;
-//        ++server->idCounter;
-    }
-    else if (UdcSocket::stringToIPv4(nodeName, serviceName, clientInfo->addressIPv4, clientInfo->port))
-    {
-        clientInfo->addressFamily = UDC_IPV4;
-//        clientInfo->id = server->idCounter;
-//        ++server->idCounter;
-    }
-    else
     {
         return false;
     }
@@ -409,6 +442,45 @@ bool udcTryConnect(
     auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
 
+    auto clientInfo = std::make_unique<UdcConnection>();
+
+    clientInfo->id = (server->idCounter++);
+    clientInfo->isConnected = false;
+    clientInfo->addressFamily = UDC_IPV4;
+    clientInfo->addressIPv4 = ip;
+    clientInfo->port = port;
+    clientInfo->tryConnectTimeout = std::chrono::milliseconds(timeout);
+    clientInfo->tryConnectFirstTime = currentTime;
+    clientInfo->tryConnectPrevTime = std::chrono::milliseconds(0);
+
+    // Add to pending
+    server->pendingClients.push(std::move(clientInfo));
+
+    return true;
+}
+
+bool udcTryConnectIPv6(
+    UdcServer* server,
+    const UdcAddressIPv6& ip,
+    uint16_t port,
+    uint32_t timeout,
+    UdcEndPointId& endPointId)
+{
+    if (server == nullptr || timeout == 0)
+    {
+        return false;
+    }
+
+    auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch());
+
+    auto clientInfo = std::make_unique<UdcConnection>();
+
+    clientInfo->id = (server->idCounter++);
+    clientInfo->isConnected = false;
+    clientInfo->addressFamily = UDC_IPV6;
+    clientInfo->addressIPv6 = ip;
+    clientInfo->port = port;
     clientInfo->tryConnectTimeout = std::chrono::milliseconds(timeout);
     clientInfo->tryConnectFirstTime = currentTime;
     clientInfo->tryConnectPrevTime = std::chrono::milliseconds(0);
