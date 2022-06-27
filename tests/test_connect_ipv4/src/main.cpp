@@ -9,8 +9,10 @@
 
 int main()
 {
+    std::vector<uint8_t> buffer(2048);
+
     // Create nodeA
-    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345, "test_connect_ipv4_logA.txt");
+    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345, buffer.data(), buffer.size(), "test_connect_ipv4_logA.txt");
 
     if (nodeA == nullptr)
     {
@@ -19,7 +21,7 @@ int main()
     }
 
     // Create nodeB
-    UdcServer* nodeB = udcCreateServer(0x01020304, 1235, 2346, "test_connect_ipv4_logB.txt");
+    UdcServer* nodeB = udcCreateServer(0x01020304, 1235, 2346, buffer.data(), buffer.size(), "test_connect_ipv4_logB.txt");
 
     if (nodeB == nullptr)
     {

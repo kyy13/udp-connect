@@ -26,8 +26,6 @@ struct UdcMsgConnection
 struct UdcMsgExternal
 {
     UdcEndPointId clientId;
-    const uint8_t* data;
-    uint32_t size;
 };
 
 struct UdcMsgPingPong
@@ -53,22 +51,22 @@ constexpr size_t UDC_MSG_PING_PONG_SIZE =
     sizeof(UdcMsgPingPong::clientId) +
     sizeof(UdcMsgPingPong::timeOnServer);
 
-void udcGenerateHeader(std::vector<uint8_t>& msg, UdcSignature signature, UdcMessageId messageId);
+void udcGenerateHeader(uint8_t* buffer, uint32_t& size, UdcSignature signature, UdcMessageId messageId);
 
 [[nodiscard]]
-bool udcReadHeader(const std::vector<uint8_t>& src, uint32_t signature, UdcMessageId& messageId);
+bool udcReadHeader(const uint8_t* buffer, uint32_t size, uint32_t signature, UdcMessageId& messageId);
 
-void udcGenerateMessage(std::vector<uint8_t>& msg, const UdcMsgConnection& body, UdcSignature signature, UdcMessageId messageId);
+void udcGenerateMessage(uint8_t* buffer, uint32_t& size, const UdcMsgConnection& body, UdcSignature signature, UdcMessageId messageId);
 
-void udcGenerateMessage(std::vector<uint8_t>& msg, const UdcMsgPingPong& body, UdcSignature signature, UdcMessageId messageId);
-
-[[nodiscard]]
-bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgConnection& dst);
+void udcGenerateMessage(uint8_t* buffer, uint32_t& size, const UdcMsgPingPong& body, UdcSignature signature, UdcMessageId messageId);
 
 [[nodiscard]]
-bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgPingPong& dst);
+bool udcReadMessage(const uint8_t* buffer, uint32_t size, UdcMsgConnection& dst);
 
 [[nodiscard]]
-bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgExternal& dst);
+bool udcReadMessage(const uint8_t* buffer, uint32_t size, UdcMsgPingPong& dst);
+
+[[nodiscard]]
+bool udcReadMessage(const uint8_t* buffer, uint32_t size, UdcMsgExternal& dst);
 
 #endif

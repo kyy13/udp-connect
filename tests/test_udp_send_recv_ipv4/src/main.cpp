@@ -79,7 +79,7 @@ int main()
 
     UdcAddressIPv4 rAddress;
     uint16_t rPort;
-    std::vector<uint8_t> message;
+    std::vector<uint8_t> message(2048);
 
     for (size_t i = 0; i != 100; ++i)
     {
@@ -89,7 +89,8 @@ int main()
             return -1;
         }
 
-        if (receiver.receive(rAddress, rPort, message))
+        uint32_t msgSize = message.size();
+        if (receiver.receive(rAddress, rPort, message.data(), msgSize))
         {
             if (!std::equal(udpMessage.begin(), udpMessage.end(), message.begin()))
             {

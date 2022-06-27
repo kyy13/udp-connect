@@ -142,14 +142,14 @@ namespace WinSock
         return (r != SOCKET_ERROR) && (static_cast<uint32_t>(r) == size);
     }
 
-    int32_t receivePacketIPv4(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressIPv4& sourceIP, uint16_t& sourcePort, std::vector<uint8_t>& data)
+    int32_t receivePacketIPv4(SOCKET s, UdcAddressIPv4& sourceIP, uint16_t& sourcePort, uint8_t* buffer, uint32_t& size)
     {
         sockaddr_in ip;
         int ipSize = sizeof(ip);
 
         int result = recvfrom(s,
-            reinterpret_cast<char*>(tmpBuffer.data()),
-            static_cast<int>(tmpBuffer.size()),
+            reinterpret_cast<char*>(buffer),
+            static_cast<int>(size),
             0,
             reinterpret_cast<sockaddr*>(&ip),
             &ipSize);
@@ -170,9 +170,10 @@ namespace WinSock
             {
                 convertInaddrToIPv4(ip.sin_addr, sourceIP);
                 sourcePort = ntohs(ip.sin_port);
-
-                data.resize(tmpBuffer.size());
-                memcpy(data.data(), tmpBuffer.data(), tmpBuffer.size());
+//
+//                data.resize(tmpBuffer.size());
+//                memcpy(data.data(), tmpBuffer.data(), tmpBuffer.size());
+                size = result;
 
                 return -1;
             }
@@ -190,21 +191,22 @@ namespace WinSock
         convertInaddrToIPv4(ip.sin_addr, sourceIP);
         sourcePort = ntohs(ip.sin_port);
 
-        assert(result <= (int)tmpBuffer.size());
-        data.resize(result);
-        memcpy(data.data(), tmpBuffer.data(), result);
+        assert(result <= static_cast<int>(size));
+//        data.resize(result);
+//        memcpy(data.data(), tmpBuffer.data(), result);
+        size = result;
 
         return 1;
     }
 
-    int32_t receivePacketIPv6(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressIPv6& sourceIP, uint16_t& sourcePort, std::vector<uint8_t>& data)
+    int32_t receivePacketIPv6(SOCKET s, UdcAddressIPv6& sourceIP, uint16_t& sourcePort, uint8_t* buffer, uint32_t& size)
     {
         sockaddr_in6 ip;
         int ipSize = sizeof(ip);
 
         int result = recvfrom(s,
-            reinterpret_cast<char*>(tmpBuffer.data()),
-            static_cast<int>(tmpBuffer.size()),
+            reinterpret_cast<char*>(buffer),
+            static_cast<int>(size),
             0,
             reinterpret_cast<sockaddr*>(&ip),
             &ipSize);
@@ -226,8 +228,9 @@ namespace WinSock
                 convertInaddrToIPv6(ip.sin6_addr, sourceIP);
                 sourcePort = ntohs(ip.sin6_port);
 
-                data.resize(tmpBuffer.size());
-                memcpy(data.data(), tmpBuffer.data(), tmpBuffer.size());
+//                data.resize(tmpBuffer.size());
+//                memcpy(data.data(), tmpBuffer.data(), tmpBuffer.size());
+                size = result;
 
                 return -1;
             }
@@ -245,9 +248,10 @@ namespace WinSock
         convertInaddrToIPv6(ip.sin6_addr, sourceIP);
         sourcePort = ntohs(ip.sin6_port);
 
-        assert(result <= (int)tmpBuffer.size());
-        data.resize(result);
-        memcpy(data.data(), tmpBuffer.data(), result);
+        assert(result <= static_cast<int>(size));
+//        data.resize(result);
+//        memcpy(data.data(), tmpBuffer.data(), result);
+        size = result;
 
         return 1;
     }

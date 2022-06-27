@@ -16,9 +16,9 @@ public:
 
     UdcPacketLogger(const std::string& fileName);
 
-    void logReceived(const UdcAddressIPv4& address, uint16_t port, const std::vector<uint8_t>& packetData);
+    void logReceived(const UdcAddressIPv4& address, uint16_t port, const uint8_t* data, uint32_t size);
 
-    void logReceived(const UdcAddressIPv6& address, uint16_t port, const std::vector<uint8_t>& packetData);
+    void logReceived(const UdcAddressIPv6& address, uint16_t port, const uint8_t* data, uint32_t size);
 
     void logSent(const UdcAddressIPv4& address, uint16_t port, const uint8_t* data, uint32_t size);
 

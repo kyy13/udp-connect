@@ -37,7 +37,8 @@ struct UdcServer
     std::unordered_map<UdcEndPointId, std::unique_ptr<UdcConnection>> clients;
 
     // Message Buffer
-    std::vector<uint8_t> messageBuffer;
+    uint8_t* buffer;
+    uint32_t bufferSize;
 };
 
 #endif

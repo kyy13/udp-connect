@@ -73,7 +73,7 @@ bool UdcSocketMux::send(const UdcAddressIPv6& address, uint16_t port, const uint
     return result;
 }
 
-bool UdcSocketMux::receive(UdcAddressIPv4& address, uint16_t& port, std::vector<uint8_t>& data)
+bool UdcSocketMux::receive(UdcAddressIPv4& address, uint16_t& port, uint8_t* buffer, uint32_t& size)
 {
     // Not connected
     if (!m_socketIPv4.isConnected())
@@ -81,18 +81,18 @@ bool UdcSocketMux::receive(UdcAddressIPv4& address, uint16_t& port, std::vector<
         return false;
     }
 
-    bool result = m_socketIPv4.receiveIPv4(address, port, data) == 1;
+    bool result = m_socketIPv4.receiveIPv4(address, port, buffer, size) == 1;
 
     // Log if necessary
     if (m_logger && result)
     {
-        m_logger->logReceived(address, port, data);
+        m_logger->logReceived(address, port, buffer, size);
     }
 
     return result;
 }
 
-bool UdcSocketMux::receive(UdcAddressIPv6& address, uint16_t& port, std::vector<uint8_t>& data)
+bool UdcSocketMux::receive(UdcAddressIPv6& address, uint16_t& port, uint8_t* buffer, uint32_t& size)
 {
     // Not connected
     if (!m_socketIPv6.isConnected())
@@ -100,12 +100,12 @@ bool UdcSocketMux::receive(UdcAddressIPv6& address, uint16_t& port, std::vector<
         return false;
     }
 
-    bool result = m_socketIPv6.receiveIPv6(address, port, data) == 1;
+    bool result = m_socketIPv6.receiveIPv6(address, port, buffer, size) == 1;
 
     // Log if necessary
     if (m_logger && result)
     {
-        m_logger->logReceived(address, port, data);
+        m_logger->logReceived(address, port, buffer, size);
     }
 
     return result;

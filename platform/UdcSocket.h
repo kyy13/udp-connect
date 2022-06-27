@@ -96,7 +96,7 @@ public:
     // returns -1 if the message was truncated due to size
     // returns -2 if there was an error such as socket being closed unexpectedly
     [[nodiscard]]
-    int32_t receiveIPv4(UdcAddressIPv4& sourceIP, uint16_t& port, std::vector<uint8_t>& data, size_t maxSize = 2048) const;
+    int32_t receiveIPv4(UdcAddressIPv4& sourceIP, uint16_t& port, uint8_t* buffer, uint32_t& size) const;
 
     // Receive packets on a port bound with localBindIPv6
     // returns 1 on success
@@ -104,13 +104,12 @@ public:
     // returns -1 if the message was truncated due to size
     // returns -2 if there was an error such as socket being closed unexpectedly
     [[nodiscard]]
-    int32_t receiveIPv6(UdcAddressIPv6& sourceIP, uint16_t& port, std::vector<uint8_t>& data, size_t maxSize = 2048) const;
+    int32_t receiveIPv6(UdcAddressIPv6& sourceIP, uint16_t& port, uint8_t* buffer, uint32_t& size) const;
 
 protected:
 #ifdef OS_WINDOWS
     SOCKET m_socket;
 #endif
-    static std::vector<uint8_t> m_buffer;
 };
 
 #endif

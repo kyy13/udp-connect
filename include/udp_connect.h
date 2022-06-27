@@ -74,6 +74,8 @@ extern "C"
         UdcSignature signature,
         uint16_t portIPv6,
         uint16_t portIPv4,
+        uint8_t* buffer,
+        uint32_t size,
         const char* logFileName);
 
     // Stops and deletes a server
@@ -136,10 +138,10 @@ extern "C"
     bool udcGetResultConnectionEvent(const UdcEvent* event, UdcEndPointId& endPointId);
 
     // Get results of an external message event
-    bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv4& address, uint16_t& port, uint8_t*& message, uint32_t& size);
+    bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv4& address, uint16_t& port, uint8_t* buffer, uint32_t& size);
 
     // Get results of an external message event
-    bool udcGetResultExternalIPv6Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv6& address, uint16_t& port, uint8_t*& message, uint32_t& size);
+    bool udcGetResultExternalIPv6Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv6& address, uint16_t& port, uint8_t* buffer, uint32_t& size);
 }
 
 #endif

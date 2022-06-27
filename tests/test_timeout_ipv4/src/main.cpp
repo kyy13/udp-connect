@@ -9,8 +9,10 @@
 
 int main()
 {
+    std::vector<uint8_t> buffer(2048);
+
     // Create nodeA
-    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345, "test_timeout_ipv4_logA.txt");
+    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345, buffer.data(), buffer.size(), "test_timeout_ipv4_logA.txt");
 
     if (nodeA == nullptr)
     {

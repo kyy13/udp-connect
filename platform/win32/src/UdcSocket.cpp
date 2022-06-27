@@ -7,8 +7,6 @@
 #include <ws2tcpip.h>
 #include <stdexcept>
 
-std::vector<uint8_t> UdcSocket::m_buffer;
-
 UdcSocket::UdcSocket()
     : m_socket(INVALID_SOCKET)
 {
@@ -248,24 +246,22 @@ bool UdcSocket::sendIPv6(const UdcAddressIPv6& address, uint16_t port, const uin
     return WinSock::sendPacketIPv6(m_socket, WinSock::createAddressIPv6(address, port), data, size);
 }
 
-int32_t UdcSocket::receiveIPv4(UdcAddressIPv4& sourceIP, uint16_t& port, std::vector<uint8_t>& data, size_t maxSize) const
+int32_t UdcSocket::receiveIPv4(UdcAddressIPv4& sourceIP, uint16_t& port, uint8_t* buffer, uint32_t& size) const
 {
     if (m_socket == INVALID_SOCKET)
     {
         return -2;
     }
 
-    m_buffer.resize(maxSize);
-    return WinSock::receivePacketIPv4(m_socket, m_buffer, sourceIP, port, data);
+    return WinSock::receivePacketIPv4(m_socket, sourceIP, port, buffer, size);
 }
 
-int32_t UdcSocket::receiveIPv6(UdcAddressIPv6& sourceIP, uint16_t& port, std::vector<uint8_t>& data, size_t maxSize) const
+int32_t UdcSocket::receiveIPv6(UdcAddressIPv6& sourceIP, uint16_t& port, uint8_t* buffer, uint32_t& size) const
 {
     if (m_socket == INVALID_SOCKET)
     {
         return -2;
     }
 
-    m_buffer.resize(maxSize);
-    return WinSock::receivePacketIPv6(m_socket, m_buffer, sourceIP, port, data);
+    return WinSock::receivePacketIPv6(m_socket, sourceIP, port, buffer, size);
 }

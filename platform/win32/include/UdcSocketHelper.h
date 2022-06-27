@@ -86,7 +86,7 @@ namespace WinSock
     // returns -1 if the message was truncated due to size
     // returns -2 if there was an error such as socket being closed unexpectedly
     [[nodiscard]]
-    int32_t receivePacketIPv4(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressIPv4& sourceIP, uint16_t& sourcePort, std::vector<uint8_t>& data);
+    int32_t receivePacketIPv4(SOCKET s, UdcAddressIPv4& sourceIP, uint16_t& sourcePort, uint8_t* buffer, uint32_t& size);
 
     // Receive a packet on an IPv6 port
     // tmpBuffer is a buffer for holding temporary packet memory with size = max size of received packet
@@ -95,7 +95,7 @@ namespace WinSock
     // returns -1 if the message was truncated due to size
     // returns -2 if there was an error such as socket being closed unexpectedly
     [[nodiscard]]
-    int32_t receivePacketIPv6(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressIPv6& sourceIP, uint16_t& sourcePort, std::vector<uint8_t>& data);
+    int32_t receivePacketIPv6(SOCKET s, UdcAddressIPv6& sourceIP, uint16_t& sourcePort, uint8_t* buffer, uint32_t& size);
 }
 
 #endif

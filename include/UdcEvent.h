@@ -18,7 +18,6 @@ struct UdcEvent
     };
 
     uint16_t port;
-    const uint8_t* buffer;
 };
 
 #endif

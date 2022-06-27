@@ -37,7 +37,8 @@ public:
     bool receive(
         UdcAddressIPv4& address,
         uint16_t& port,
-        std::vector<uint8_t>& data);
+        uint8_t* buffer,
+        uint32_t& size);
 
     // Receive messages from the connected port and
     // returns false when there are no messages to receive
@@ -46,7 +47,8 @@ public:
     bool receive(
         UdcAddressIPv6& address,
         uint16_t& port,
-        std::vector<uint8_t>& data);
+        uint8_t* buffer,
+        uint32_t& size);
 
     // Manually closes the socket
     void disconnect();
