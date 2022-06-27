@@ -15,29 +15,29 @@ extern "C"
     struct UdcEvent;
 
     // Types of events
-    enum UdcEventType
+    enum UdcEventType : uint32_t
     {
         // A connection attempt has succeeded
         // *these events will happen in the order of udcTryConnect() calls
-        UDC_EVENT_CONNECTION_SUCCESS,
+        UDC_EVENT_CONNECTION_SUCCESS = 0u,
 
         // A connection attempt has timed out (failed)
         // *these events will happen in the order of udcTryConnect() calls
-        UDC_EVENT_CONNECTION_TIMEOUT,
+        UDC_EVENT_CONNECTION_TIMEOUT = 1u,
 
         // A connection was abnormally lost, the endpoint connection will continue trying to connect
         // and will stop queueing unreliable messages to send until a UDC_EVENT_CONNECTION_REGAINED event
         // happens, or udcDisconnect() is called.
-        UDC_EVENT_CONNECTION_LOST,
+        UDC_EVENT_CONNECTION_LOST = 2u,
 
         // A connection that was lost has been regained.
-        UDC_EVENT_CONNECTION_REGAINED,
+        UDC_EVENT_CONNECTION_REGAINED = 3u,
 
         // A message has been received.
-        UDC_EVENT_RECEIVE_MESSAGE_IPV4,
+        UDC_EVENT_RECEIVE_MESSAGE_IPV4 = 4u,
 
         // A message has been received.
-        UDC_EVENT_RECEIVE_MESSAGE_IPV6,
+        UDC_EVENT_RECEIVE_MESSAGE_IPV6 = 5u,
     };
 
     enum UdcReliability
@@ -118,10 +118,10 @@ extern "C"
         uint32_t timeout,
         UdcEndPointId& endPointId);
 
-    void udcSendPacket(
+    void udcSendMessage(
         UdcServer* server,
         UdcEndPointId endPointId,
-        uint8_t* data,
+        const uint8_t* data,
         uint32_t size,
         UdcReliability reliability);
 
@@ -131,6 +131,15 @@ extern "C"
 
     // Get the type of event that was returned by udcProcessEvents()
     UdcEventType udcGetEventType(const UdcEvent* event);
+
+    // Get results of a connection event
+    bool udcGetResultConnectionEvent(const UdcEvent* event, UdcEndPointId& endPointId);
+
+    // Get results of an external message event
+    bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv4& address, uint16_t& port, uint8_t*& message, uint32_t& size);
+
+    // Get results of an external message event
+    bool udcGetResultExternalIPv6Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv6& address, uint16_t& port, uint8_t*& message, uint32_t& size);
 }
 
 #endif

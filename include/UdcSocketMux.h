@@ -25,10 +25,10 @@ public:
     bool bind(uint16_t portIPv6, uint16_t portIPv4);
 
     // Send a message
-    bool send(const UdcAddressIPv4& address, uint16_t port, const std::vector<uint8_t>& data) const;
+    bool send(const UdcAddressIPv4& address, uint16_t port, const uint8_t* data, uint32_t size) const;
 
     // Send a message
-    bool send(const UdcAddressIPv6& address, uint16_t port, const std::vector<uint8_t>& data) const;
+    bool send(const UdcAddressIPv6& address, uint16_t port, const uint8_t* data, uint32_t size) const;
 
     // Receive messages from the connected port and
     // returns false when there are no messages to receive

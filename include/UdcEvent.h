@@ -10,7 +10,6 @@ struct UdcEvent
 {
     UdcEventType eventType;
     UdcEndPointId endPointId;
-    UdcAddressFamily addressFamily;
 
     union
     {

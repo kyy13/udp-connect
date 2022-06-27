@@ -83,12 +83,12 @@ public:
     // Send a packet over IPv4
     // returns true on success
     [[nodiscard]]
-    bool sendIPv4(const UdcAddressIPv4& address, uint16_t port, const std::vector<uint8_t>& data) const;
+    bool sendIPv4(const UdcAddressIPv4& address, uint16_t port, const uint8_t* data, uint32_t size) const;
 
     // Send a packet over IPv6
     // returns true on success
     [[nodiscard]]
-    bool sendIPv6(const UdcAddressIPv6& address, uint16_t port, const std::vector<uint8_t>& data) const;
+    bool sendIPv6(const UdcAddressIPv6& address, uint16_t port, const uint8_t* data, uint32_t size) const;
 
     // Receive packets on a port bound with localBindIPv4
     // returns 1 on success

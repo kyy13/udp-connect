@@ -94,11 +94,11 @@ bool trySendPing(UdcServer* server, UdcConnection& client, UdcEvent& event)
 
         if (client.addressFamily == UDC_IPV6)
         {
-            server->socket.send(client.addressIPv6, client.port, server->messageBuffer);
+            server->socket.send(client.addressIPv6, client.port, server->messageBuffer.data(), server->messageBuffer.size());
         }
         else if (client.addressFamily == UDC_IPV4)
         {
-            server->socket.send(client.addressIPv4, client.port, server->messageBuffer);
+            server->socket.send(client.addressIPv4, client.port, server->messageBuffer.data(), server->messageBuffer.size());
         }
 
         client.pingPrevTime = currentTime;
@@ -133,18 +133,7 @@ bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent
     {
         // Send a timeout event
         event.eventType = UDC_EVENT_CONNECTION_TIMEOUT;
-        event.addressFamily = client.addressFamily;
-
-        if (client.addressFamily == UDC_IPV6)
-        {
-            event.addressIPv6 = client.addressIPv6;
-        }
-        else
-        {
-            event.addressIPv4 = client.addressIPv4;
-        }
-
-        event.port = client.port;
+        event.endPointId = client.id;
 
         // Timed-out, remove pending client from the queue
         server->pendingClients.pop();
@@ -170,11 +159,11 @@ bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent
 
         if (client.addressFamily == UDC_IPV6)
         {
-            server->socket.send(client.addressIPv6, client.port, server->messageBuffer);
+            server->socket.send(client.addressIPv6, client.port, server->messageBuffer.data(), server->messageBuffer.size());
         }
         else if (client.addressFamily == UDC_IPV4)
         {
-            server->socket.send(client.addressIPv4, client.port, server->messageBuffer);
+            server->socket.send(client.addressIPv4, client.port, server->messageBuffer.data(), server->messageBuffer.size());
         }
 
         client.tryConnectPrevTime = currentTime;
@@ -218,7 +207,7 @@ void tryReadPing(UdcServer* server, const T& address, uint16_t port)
         UDC_MSG_PONG);
 
     // Send pong
-    server->socket.send(address, port, server->messageBuffer);
+    server->socket.send(address, port, server->messageBuffer.data(), server->messageBuffer.size());
 }
 
 // UDC_MSG_PONG
@@ -306,7 +295,7 @@ void tryReadConnectionRequest(UdcServer* server, const T& address, uint16_t port
         UDC_MSG_CONNECTION_HANDSHAKE);
 
     // Send handshake
-    server->socket.send(address, port, server->messageBuffer);
+    server->socket.send(address, port, server->messageBuffer.data(), server->messageBuffer.size());
 }
 
 // UDC_MSG_CONNECTION_HANDSHAKE
@@ -336,19 +325,6 @@ bool tryReadConnectionHandshake(UdcServer* server, const T& address, UdcEvent& e
         event.eventType = UDC_EVENT_CONNECTION_SUCCESS;
         event.endPointId = msg.clientId;
 
-        if constexpr (std::is_same<T, UdcAddressIPv4>::value)
-        {
-            event.addressFamily = UDC_IPV4;
-            event.addressIPv4 = address;
-        }
-        else
-        {
-            event.addressFamily = UDC_IPV6;
-            event.addressIPv6 = address;
-        }
-
-        event.port = client->port;
-
         auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch());
 
@@ -365,6 +341,34 @@ bool tryReadConnectionHandshake(UdcServer* server, const T& address, UdcEvent& e
 }
 
 template<class T>
+bool tryReadExternal(UdcServer* server, const T& address, uint16_t port, UdcEvent& event)
+{
+    UdcMsgExternal msg;
+
+    if (!udcReadMessage(server->messageBuffer, msg))
+    {
+        return false;
+    }
+
+    if constexpr (std::is_same<T, UdcAddressIPv4>::value)
+    {
+        event.eventType = UDC_EVENT_RECEIVE_MESSAGE_IPV4;
+        event.addressIPv4 = address;
+    }
+    else
+    {
+        event.eventType = UDC_EVENT_RECEIVE_MESSAGE_IPV6;
+        event.addressIPv6 = address;
+    }
+
+    event.endPointId = msg.clientId;
+    event.port = port;
+    event.buffer = msg.data;
+
+    return true;
+}
+
+template<class T>
 bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
 {
     UdcMessageId msgId;
@@ -374,26 +378,35 @@ bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
     while (server->socket.receive(address, port, server->messageBuffer))
     {
         // Read message header
-        if (!udcReadHeader(server->messageBuffer, server->signature, msgId))
+        if (udcReadHeader(server->messageBuffer, server->signature, msgId))
         {
-            continue;
-        }
-
-        // Handle message
-        switch(msgId)
-        {
-        case UDC_MSG_CONNECTION_REQUEST:
-            tryReadConnectionRequest(server, address, port);
-            return false;
-        case UDC_MSG_CONNECTION_HANDSHAKE:
-            return tryReadConnectionHandshake(server, address, event);
-        case UDC_MSG_PING:
-            tryReadPing(server, address, port);
-            return false;
-        case UDC_MSG_PONG:
-            return tryReadPong(server, event);
-        case UDC_MSG_EXTERNAL:
-            return false;
+            switch (msgId)
+            {
+                case UDC_MSG_CONNECTION_REQUEST:
+                    tryReadConnectionRequest(server, address, port);
+                    break;
+                case UDC_MSG_CONNECTION_HANDSHAKE:
+                    if (tryReadConnectionHandshake(server, address, event))
+                    {
+                        return true;
+                    }
+                    break;
+                case UDC_MSG_PING:
+                    tryReadPing(server, address, port);
+                    break;
+                case UDC_MSG_PONG:
+                    if (tryReadPong(server, event))
+                    {
+                        return true;
+                    }
+                    break;
+                case UDC_MSG_EXTERNAL:
+                    if (tryReadExternal(server, address, port, event))
+                    {
+                        return true;
+                    }
+                    break;
+            }
         }
     }
 
@@ -529,4 +542,64 @@ UdcEvent* udcProcessEvents(UdcServer* server)
 UdcEventType udcGetEventType(const UdcEvent* event)
 {
     return event->eventType;
+}
+
+bool udcGetResultConnectionEvent(const UdcEvent* event, UdcEndPointId& endPointId)
+{
+    if (event->eventType > UDC_EVENT_CONNECTION_REGAINED)
+    {
+        return false;
+    }
+
+    endPointId = event->endPointId;
+    return true;
+}
+
+void udcSendMessage(
+    UdcServer* server,
+    UdcEndPointId endPointId,
+    const uint8_t* data,
+    uint32_t size,
+    UdcReliability reliability)
+{
+    auto it = server->clients.find(endPointId);
+
+    if (it == server->clients.end())
+    {
+        return;
+    }
+
+    auto& client = *(it->second);
+
+    if (!client.isConnected)
+    {
+        return;
+    }
+
+    if (client.addressFamily == UDC_IPV6)
+    {
+        server->socket.send(client.addressIPv6, client.port, data, size);
+    }
+    else
+    {
+        server->socket.send(client.addressIPv4, client.port, data, size);
+    }
+}
+
+bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv4& address, uint16_t& port, uint8_t*& message, uint32_t& size)
+{
+    if (event->eventType != UDC_EVENT_RECEIVE_MESSAGE_IPV4)
+    {
+        return false;
+    }
+
+    endPointId = event->endPointId;
+    address = event->addressIPv4;
+    port = event->port;
+    return true;
+}
+
+bool udcGetResultExternalIPv6Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv6& address, uint16_t& port, uint8_t*& message, uint32_t& size)
+{
+
 }

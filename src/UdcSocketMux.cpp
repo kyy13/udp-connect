@@ -35,7 +35,7 @@ bool UdcSocketMux::bind(uint16_t portIPv6, uint16_t portIPv4)
     return result;
 }
 
-bool UdcSocketMux::send(const UdcAddressIPv4& address, uint16_t port, const std::vector<uint8_t>& data) const
+bool UdcSocketMux::send(const UdcAddressIPv4& address, uint16_t port, const uint8_t* data, uint32_t size) const
 {
     // Not connected
     if (!m_socketIPv4.isConnected())
@@ -43,18 +43,18 @@ bool UdcSocketMux::send(const UdcAddressIPv4& address, uint16_t port, const std:
         return false;
     }
 
-    bool result = m_socketIPv4.sendIPv4(address, port, data);
+    bool result = m_socketIPv4.sendIPv4(address, port, data, size);
 
     // Log if necessary
     if (m_logger && result)
     {
-        m_logger->logSent(address, port, data);
+        m_logger->logSent(address, port, data, size);
     }
 
     return result;
 }
 
-bool UdcSocketMux::send(const UdcAddressIPv6& address, uint16_t port, const std::vector<uint8_t>& data) const
+bool UdcSocketMux::send(const UdcAddressIPv6& address, uint16_t port, const uint8_t* data, uint32_t size) const
 {
     // Not connected
     if (!m_socketIPv6.isConnected())
@@ -62,12 +62,12 @@ bool UdcSocketMux::send(const UdcAddressIPv6& address, uint16_t port, const std:
         return false;
     }
 
-    bool result = m_socketIPv6.sendIPv6(address, port, data);
+    bool result = m_socketIPv6.sendIPv6(address, port, data, size);
 
     // Log if necessary
     if (m_logger && result)
     {
-        m_logger->logSent(address, port, data);
+        m_logger->logSent(address, port, data, size);
     }
 
     return result;

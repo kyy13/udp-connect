@@ -23,6 +23,13 @@ struct UdcMsgConnection
     UdcEndPointId clientId;
 };
 
+struct UdcMsgExternal
+{
+    UdcEndPointId clientId;
+    const uint8_t* data;
+    uint32_t size;
+};
+
 struct UdcMsgPingPong
 {
     UdcEndPointId clientId;
@@ -34,6 +41,10 @@ constexpr size_t UDC_MSG_HEADER_SIZE =
     sizeof(UdcMessageId);
 
 constexpr size_t UDC_MSG_CONNECTION_SIZE =
+    UDC_MSG_HEADER_SIZE +
+    sizeof(UdcEndPointId);
+
+constexpr size_t UDC_MSG_EXTERNAL_SIZE =
     UDC_MSG_HEADER_SIZE +
     sizeof(UdcEndPointId);
 
@@ -56,5 +67,8 @@ bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgConnection& dst);
 
 [[nodiscard]]
 bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgPingPong& dst);
+
+[[nodiscard]]
+bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgExternal& dst);
 
 #endif

@@ -228,24 +228,24 @@ void UdcSocket::disconnect()
     WinSock::deleteSocket(m_socket);
 }
 
-bool UdcSocket::sendIPv4(const UdcAddressIPv4& address, uint16_t port, const std::vector<uint8_t>& data) const
+bool UdcSocket::sendIPv4(const UdcAddressIPv4& address, uint16_t port, const uint8_t* data, uint32_t size) const
 {
     if (m_socket == INVALID_SOCKET)
     {
         return false;
     }
 
-    return WinSock::sendPacketIPv4(m_socket, WinSock::createAddressIPv4(address, port), data);
+    return WinSock::sendPacketIPv4(m_socket, WinSock::createAddressIPv4(address, port), data, size);
 }
 
-bool UdcSocket::sendIPv6(const UdcAddressIPv6& address, uint16_t port, const std::vector<uint8_t>& data) const
+bool UdcSocket::sendIPv6(const UdcAddressIPv6& address, uint16_t port, const uint8_t* data, uint32_t size) const
 {
     if (m_socket == INVALID_SOCKET)
     {
         return false;
     }
 
-    return WinSock::sendPacketIPv6(m_socket, WinSock::createAddressIPv6(address, port), data);
+    return WinSock::sendPacketIPv6(m_socket, WinSock::createAddressIPv6(address, port), data, size);
 }
 
 int32_t UdcSocket::receiveIPv4(UdcAddressIPv4& sourceIP, uint16_t& port, std::vector<uint8_t>& data, size_t maxSize) const

@@ -72,12 +72,12 @@ namespace WinSock
     // Send a packet over IPv4
     // returns true on success
     [[nodiscard]]
-    bool sendPacketIPv4(SOCKET s, sockaddr_in address, const std::vector<uint8_t>& data);
+    bool sendPacketIPv4(SOCKET s, sockaddr_in address, const uint8_t* data, uint32_t size);
 
     // Send a packet over IPv6
     // returns true on success
     [[nodiscard]]
-    bool sendPacketIPv6(SOCKET s, sockaddr_in6 address, const std::vector<uint8_t>& data);
+    bool sendPacketIPv6(SOCKET s, sockaddr_in6 address, const uint8_t* data, uint32_t size);
 
     // Receive a packet on an IPv4 port
     // tmpBuffer is a buffer for holding temporary packet memory with size = max size of received packet

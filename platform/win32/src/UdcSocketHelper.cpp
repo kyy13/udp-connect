@@ -116,30 +116,30 @@ namespace WinSock
         memcpy(dst.segments, src.u.Byte, sizeof(dst.segments));
     }
 
-    bool sendPacketIPv4(SOCKET s, sockaddr_in address, const std::vector<uint8_t>& data)
+    bool sendPacketIPv4(SOCKET s, sockaddr_in address, const uint8_t* data, uint32_t size)
     {
         int r = sendto(
             s,
-            reinterpret_cast<const char*>(data.data()),
-            static_cast<int>(data.size()),
+            reinterpret_cast<const char*>(data),
+            static_cast<int>(size),
             0,
             reinterpret_cast<sockaddr*>(&address),
             sizeof(address));
 
-        return (r != SOCKET_ERROR) && (static_cast<size_t>(r) == data.size());
+        return (r != SOCKET_ERROR) && (static_cast<uint32_t>(r) == size);
     }
 
-    bool sendPacketIPv6(SOCKET s, sockaddr_in6 address, const std::vector<uint8_t>& data)
+    bool sendPacketIPv6(SOCKET s, sockaddr_in6 address, const uint8_t* data, uint32_t size)
     {
         int r = sendto(
             s,
-            reinterpret_cast<const char*>(data.data()),
-            static_cast<int>(data.size()),
+            reinterpret_cast<const char*>(data),
+            static_cast<int>(size),
             0,
             reinterpret_cast<sockaddr*>(&address),
             sizeof(address));
 
-        return (r != SOCKET_ERROR) && (static_cast<size_t>(r) == data.size());
+        return (r != SOCKET_ERROR) && (static_cast<uint32_t>(r) == size);
     }
 
     int32_t receivePacketIPv4(SOCKET s, std::vector<uint8_t>& tmpBuffer, UdcAddressIPv4& sourceIP, uint16_t& sourcePort, std::vector<uint8_t>& data)

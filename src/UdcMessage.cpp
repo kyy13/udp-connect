@@ -70,6 +70,23 @@ bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgConnection& dst)
     return true;
 }
 
+bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgExternal& dst)
+{
+    if (src.size() <= UDC_MSG_EXTERNAL_SIZE)
+    {
+        return false;
+    }
+
+    const uint8_t* ptr = src.data() + UDC_MSG_HEADER_SIZE;
+
+    memcpy(&dst.clientId, ptr, sizeof(UdcEndPointId));
+
+    dst.data = src.data() + UDC_MSG_EXTERNAL_SIZE;
+    dst.size = src.size() - UDC_MSG_EXTERNAL_SIZE;
+
+    return true;
+}
+
 bool udcReadMessage(const std::vector<uint8_t>& src, UdcMsgPingPong& dst)
 {
     if (src.size() != UDC_MSG_PING_PONG_SIZE)

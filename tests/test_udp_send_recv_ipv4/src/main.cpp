@@ -30,7 +30,7 @@ int main()
         return -1;
     }
 
-    if (!socket.send(addressIPv4, 7777, udpMessage))
+    if (!socket.send(addressIPv4, 7777, udpMessage.data(), udpMessage.size()))
     {
         std::cout << "failed to send\n";
         return -1;
@@ -43,7 +43,7 @@ int main()
         return -1;
     }
 
-    if (!socket.send(addressIPv4, 7777, udpMessage))
+    if (!socket.send(addressIPv4, 7777, udpMessage.data(), udpMessage.size()))
     {
         std::cout << "failed to send\n";
         return -1;
@@ -59,7 +59,7 @@ int main()
         return -1;
     }
 
-    if (!socket.send(addressIPv4, 7777, udpMessage))
+    if (!socket.send(addressIPv4, 7777, udpMessage.data(), udpMessage.size()))
     {
         std::cout << "failed to send\n";
         return -1;
@@ -83,7 +83,7 @@ int main()
 
     for (size_t i = 0; i != 100; ++i)
     {
-        if (!socket.send(addressIPv4, 7777, udpMessage))
+        if (!socket.send(addressIPv4, 7777, udpMessage.data(), udpMessage.size()))
         {
             std::cout << "failed to send.\n";
             return -1;
