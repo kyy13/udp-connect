@@ -18,6 +18,69 @@ enum UdcMessageId : uint8_t
     UDC_MSG_EXTERNAL,
 };
 
+// Message header
+struct UdcMessage
+{
+    // Size of the deserialized message in bytes
+    static constexpr uint32_t SIZE =
+        sizeof(UdcSignature) +
+        sizeof(UdcMessageId);
+
+    // Message signature
+    // for recognizing the message as a udp-connect message
+    UdcSignature msgSig;
+
+    // Message ID
+    UdcMessageId msgId;
+
+    // serialize message into a buffer
+    // input size is the maximum size in bytes of the buffer
+    // output size is the size of the serialized data
+    // returns false if the buffer isn't large enough
+    [[nodiscard]]
+    bool serialize(uint8_t* buffer, uint32_t& size) const;
+
+    // deserialize a buffer into the message
+    // returns false if the msgSize is wrong
+    // or the bufferSize isn't large enough
+    [[nodiscard]]
+    bool deserialize(const uint8_t* buffer, uint32_t bufferSize, uint32_t msgSize);
+};
+
+struct UdcConnectionRequest : UdcMessage
+{
+    // Size of the deserialized message in bytes
+    static constexpr uint32_t SIZE =
+        UdcMessage::SIZE +
+        sizeof(UdcEndPointId);
+
+    // Local ID of the client
+    UdcEndPointId endPointId;
+
+    // serialize message into a buffer
+    // input size is the maximum size in bytes of the buffer
+    // output size is the size of the serialized data
+    // returns false if the buffer isn't large enough
+    [[nodiscard]]
+    bool serialize(uint8_t* buffer, uint32_t& size) const;
+
+    // deserialize a buffer into the message
+    // returns false if the msgSize is wrong
+    // or the bufferSize isn't large enough
+    [[nodiscard]]
+    bool deserialize(const uint8_t* buffer, uint32_t bufferSize, uint32_t msgSize);
+};
+
+
+
+
+
+
+
+
+
+
+
 struct UdcMsgConnection
 {
     UdcEndPointId clientId;

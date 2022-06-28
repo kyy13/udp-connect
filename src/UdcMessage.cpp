@@ -7,6 +7,88 @@
 #include <cstring>
 #include <winsock2.h>
 
+bool UdcMessage::serialize(uint8_t* buffer, uint32_t& size) const
+{
+    if (size < SIZE)
+    {
+        return false;
+    }
+
+    uint32_t sig = htonl(msgSig);
+
+    memcpy(buffer + 0, &sig, sizeof(UdcSignature));
+    memcpy(buffer + 4, &msgId, sizeof(UdcMessageId));
+
+    size = SIZE;
+    return true;
+}
+
+bool UdcMessage::deserialize(const uint8_t* buffer, uint32_t bufferSize, uint32_t msgSize)
+{
+    if (bufferSize < msgSize)
+    {
+        return false;
+    }
+
+    if (msgSize != SIZE)
+    {
+        return false;
+    }
+
+    uint32_t sig;
+
+    memcpy(&sig, buffer + 0, sizeof(UdcSignature));
+    memcpy(&msgId, buffer + 4, sizeof(UdcMessageId));
+
+    msgSig = htonl(sig);
+
+    return true;
+}
+
+bool UdcConnectionRequest::serialize(uint8_t* buffer, uint32_t& size) const
+{
+    if (size < SIZE)
+    {
+        return false;
+    }
+
+    if (!UdcMessage::serialize(buffer, size))
+    {
+        return false;
+    }
+
+    // NOTE: endpointId doesn't need to be in network-endian order,
+    // because it is relayed exactly as-is back to the sender
+    memcpy(buffer + size, &endPointId, sizeof(UdcEndPointId));
+
+    size = SIZE;
+    return true;
+}
+
+bool UdcConnectionRequest::deserialize(const uint8_t* buffer, uint32_t bufferSize, uint32_t msgSize)
+{
+    if (bufferSize < msgSize)
+    {
+        return false;
+    }
+
+    if (msgSize != SIZE)
+    {
+        return false;
+    }
+
+    if (!UdcMessage::deserialize(buffer, bufferSize, UdcMessage::SIZE))
+    {
+        return false;
+    }
+
+    // NOTE: endpointId doesn't need to be in network-endian order,
+    // because it is relayed exactly as-is back to the sender
+    memcpy(&endPointId, buffer + UdcMessage::SIZE, sizeof(UdcEndPointId));
+
+    return true;
+}
+
 void udcGenerateHeader(uint8_t* buffer, uint32_t& size, UdcSignature signature, UdcMessageId messageId)
 {
     assert(size >= UDC_MSG_HEADER_SIZE);
