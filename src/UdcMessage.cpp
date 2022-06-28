@@ -58,6 +58,16 @@ void udcGenerateMessage(uint8_t* buffer, uint32_t& size, const UdcMsgPingPong& b
     size += sizeof(UdcMsgPingPong::timeOnServer);
 }
 
+void udcGenerateMessage(uint8_t* buffer, uint32_t& size, const uint8_t* body, uint32_t bodySize, UdcSignature signature, UdcMessageId messageId)
+{
+    assert(size >= UDC_MSG_EXTERNAL_SIZE);
+
+    udcGenerateHeader(buffer, size, signature, messageId);
+
+    memcpy(buffer + size, body, bodySize);
+    size += bodySize;
+}
+
 bool udcReadMessage(const uint8_t* buffer, uint32_t size, UdcMsgConnection& dst)
 {
     if (size != UDC_MSG_CONNECTION_SIZE)
@@ -72,16 +82,12 @@ bool udcReadMessage(const uint8_t* buffer, uint32_t size, UdcMsgConnection& dst)
     return true;
 }
 
-bool udcReadMessage(const uint8_t* buffer, uint32_t size, UdcMsgExternal& dst)
+bool udcReadMessage(const uint8_t* buffer, uint32_t size)
 {
     if (size <= UDC_MSG_EXTERNAL_SIZE)
     {
         return false;
     }
-
-    const uint8_t* ptr = buffer + UDC_MSG_HEADER_SIZE;
-
-    memcpy(&dst.clientId, ptr, sizeof(UdcEndPointId));
 
     return true;
 }

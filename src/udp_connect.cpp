@@ -359,9 +359,7 @@ bool tryReadConnectionHandshake(UdcServer* server, uint32_t msgSize, const T& ad
 template<class T>
 bool tryReadExternal(UdcServer* server, uint32_t msgSize, const T& address, uint16_t port, UdcEvent& event)
 {
-    UdcMsgExternal msg;
-
-    if (!udcReadMessage(server->buffer, msgSize, msg))
+    if (!udcReadMessage(server->buffer, msgSize))
     {
         return false;
     }
@@ -377,8 +375,9 @@ bool tryReadExternal(UdcServer* server, uint32_t msgSize, const T& address, uint
         event.addressIPv6 = address;
     }
 
-    event.endPointId = msg.clientId;
     event.port = port;
+    event.msgIndex = UDC_MSG_EXTERNAL_SIZE;
+    event.msgSize = msgSize - UDC_MSG_EXTERNAL_SIZE;
 
     return true;
 }
@@ -474,7 +473,8 @@ bool udcTryConnectIPv4(
 
     auto clientInfo = std::make_unique<UdcConnection>();
 
-    clientInfo->id = (server->idCounter++);
+    endPointId = (server->idCounter++);
+    clientInfo->id = endPointId;
     clientInfo->isConnected = false;
     clientInfo->addressFamily = UDC_IPV4;
     clientInfo->addressIPv4 = ip;
@@ -506,7 +506,8 @@ bool udcTryConnectIPv6(
 
     auto clientInfo = std::make_unique<UdcConnection>();
 
-    clientInfo->id = (server->idCounter++);
+    endPointId = (server->idCounter++);
+    clientInfo->id = endPointId;
     clientInfo->isConnected = false;
     clientInfo->addressFamily = UDC_IPV6;
     clientInfo->addressIPv6 = ip;
@@ -593,31 +594,52 @@ void udcSendMessage(
         return;
     }
 
+    uint32_t msgSize = server->bufferSize;
+
+    udcGenerateMessage(
+        server->buffer,
+        msgSize,
+        data,
+        size,
+        server->signature,
+        UDC_MSG_EXTERNAL);
+
     if (client.addressFamily == UDC_IPV6)
     {
-        server->socket.send(client.addressIPv6, client.port, data, size);
+        server->socket.send(client.addressIPv6, client.port, server->buffer, msgSize);
     }
     else
     {
-        server->socket.send(client.addressIPv4, client.port, data, size);
+        server->socket.send(client.addressIPv4, client.port, server->buffer, msgSize);
     }
 }
 
-bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv4& address, uint16_t& port, uint8_t* buffer, uint32_t& size)
+bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcAddressIPv4& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize)
 {
-//    if (event->eventType != UDC_EVENT_RECEIVE_MESSAGE_IPV4)
-//    {
-//        return false;
-//    }
-//
-//    endPointId = event->endPointId;
-//    address = event->addressIPv4;
-//    port = event->port;
-//    return true;
-    return false;
+    if (event->eventType != UDC_EVENT_RECEIVE_MESSAGE_IPV4)
+    {
+        return false;
+    }
+
+    address = event->addressIPv4;
+    port = event->port;
+    msgIndex = event->msgIndex;
+    msgSize = event->msgSize;
+
+    return true;
 }
 
-bool udcGetResultExternalIPv6Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv6& address, uint16_t& port, uint8_t* buffer, uint32_t& size)
+bool udcGetResultExternalIPv6Event(const UdcEvent* event, UdcAddressIPv6& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize)
 {
-    return false;
+    if (event->eventType != UDC_EVENT_RECEIVE_MESSAGE_IPV6)
+    {
+        return false;
+    }
+
+    address = event->addressIPv6;
+    port = event->port;
+    msgIndex = event->msgIndex;
+    msgSize = event->msgSize;
+
+    return true;
 }

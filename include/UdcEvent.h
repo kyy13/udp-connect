@@ -18,6 +18,8 @@ struct UdcEvent
     };
 
     uint16_t port;
+    uint32_t msgIndex;
+    uint32_t msgSize;
 };
 
 #endif

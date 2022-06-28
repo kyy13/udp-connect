@@ -23,10 +23,10 @@ struct UdcMsgConnection
     UdcEndPointId clientId;
 };
 
-struct UdcMsgExternal
-{
-    UdcEndPointId clientId;
-};
+//struct UdcMsgExternal
+//{
+//    UdcEndPointId clientId;
+//};
 
 struct UdcMsgPingPong
 {
@@ -43,8 +43,7 @@ constexpr size_t UDC_MSG_CONNECTION_SIZE =
     sizeof(UdcEndPointId);
 
 constexpr size_t UDC_MSG_EXTERNAL_SIZE =
-    UDC_MSG_HEADER_SIZE +
-    sizeof(UdcEndPointId);
+    UDC_MSG_HEADER_SIZE;
 
 constexpr size_t UDC_MSG_PING_PONG_SIZE =
     UDC_MSG_HEADER_SIZE +
@@ -60,6 +59,8 @@ void udcGenerateMessage(uint8_t* buffer, uint32_t& size, const UdcMsgConnection&
 
 void udcGenerateMessage(uint8_t* buffer, uint32_t& size, const UdcMsgPingPong& body, UdcSignature signature, UdcMessageId messageId);
 
+void udcGenerateMessage(uint8_t* buffer, uint32_t& size, const uint8_t* body, uint32_t bodySize, UdcSignature signature, UdcMessageId messageId); // External
+
 [[nodiscard]]
 bool udcReadMessage(const uint8_t* buffer, uint32_t size, UdcMsgConnection& dst);
 
@@ -67,6 +68,6 @@ bool udcReadMessage(const uint8_t* buffer, uint32_t size, UdcMsgConnection& dst)
 bool udcReadMessage(const uint8_t* buffer, uint32_t size, UdcMsgPingPong& dst);
 
 [[nodiscard]]
-bool udcReadMessage(const uint8_t* buffer, uint32_t size, UdcMsgExternal& dst);
+bool udcReadMessage(const uint8_t* buffer, uint32_t size); // External
 
 #endif

@@ -70,6 +70,7 @@ extern "C"
     // Creates a local server responsible for reading and acknowledging
     // messages from remote clients
     // returns nullptr if it fails to connect
+    // TODO: check minimum buffer size
     UdcServer* udcCreateServer(
         UdcSignature signature,
         uint16_t portIPv6,
@@ -138,10 +139,10 @@ extern "C"
     bool udcGetResultConnectionEvent(const UdcEvent* event, UdcEndPointId& endPointId);
 
     // Get results of an external message event
-    bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv4& address, uint16_t& port, uint8_t* buffer, uint32_t& size);
+    bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcAddressIPv4& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize);
 
     // Get results of an external message event
-    bool udcGetResultExternalIPv6Event(const UdcEvent* event, UdcEndPointId& endPointId, UdcAddressIPv6& address, uint16_t& port, uint8_t* buffer, uint32_t& size);
+    bool udcGetResultExternalIPv6Event(const UdcEvent* event, UdcAddressIPv6& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize);
 }
 
 #endif
