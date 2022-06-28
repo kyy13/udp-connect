@@ -50,7 +50,10 @@ extern "C"
     using UdcEndPointId = uint32_t;
 
     // Packet signature
-    using UdcSignature = uint32_t;
+    struct UdcSignature
+    {
+        uint8_t bytes[4];
+    };
 
     // IPv4 Address
     // Stored as 4 octets in the format [0].[1].[2].[3]

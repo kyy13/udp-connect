@@ -84,28 +84,21 @@ bool trySendPing(UdcServer* server, UdcConnection& client, UdcEvent& event)
     if (deltaPing >= pingPeriod)
     {
         // Send connection request
-        const UdcMsgPingPong msgPingPong =
-            {
-                .clientId = client.id,
-                .timeOnServer = static_cast<uint32_t>(currentTime.count()),
-            };
+        assert(server->bufferSize >= serial::msgPingPong::SIZE);
 
-        uint32_t msgSize = server->bufferSize;
-
-        udcGenerateMessage(
-            server->buffer,
-            msgSize,
-            msgPingPong,
-            server->signature,
-            UDC_MSG_PING);
+        auto& buffer = server->buffer;
+        serial::msgHeader::serializeMsgSignature(buffer, server->signature);
+        serial::msgHeader::serializeMsgId(buffer, UDC_MSG_PING);
+        serial::msgPingPong::serializeEndPointId(buffer, client.id);
+        serial::msgPingPong::serializeTimeStamp(buffer, currentTime.count());
 
         if (client.addressFamily == UDC_IPV6)
         {
-            server->socket.send(client.addressIPv6, client.port, server->buffer, msgSize);
+            server->socket.send(client.addressIPv6, client.port, buffer, serial::msgPingPong::SIZE);
         }
         else if (client.addressFamily == UDC_IPV4)
         {
-            server->socket.send(client.addressIPv4, client.port, server->buffer, msgSize);
+            server->socket.send(client.addressIPv4, client.port, buffer, serial::msgPingPong::SIZE);
         }
 
         client.pingPrevTime = currentTime;
@@ -153,27 +146,20 @@ bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent
     if (deltaTime >= tryConnectSendPeriod)
     {
         // Send connection request
-        const UdcMsgConnection msgConnectionRequest =
-            {
-                .clientId = client.id,
-            };
+        assert(server->bufferSize >= serial::msgConnection::SIZE);
 
-        uint32_t msgSize = server->bufferSize;
-
-        udcGenerateMessage(
-            server->buffer,
-            msgSize,
-            msgConnectionRequest,
-            server->signature,
-            UDC_MSG_CONNECTION_REQUEST);
+        auto& buffer = server->buffer;
+        serial::msgHeader::serializeMsgSignature(buffer, server->signature);
+        serial::msgHeader::serializeMsgId(buffer, UDC_MSG_CONNECTION_REQUEST);
+        serial::msgConnection::serializeEndPointId(buffer, client.id);
 
         if (client.addressFamily == UDC_IPV6)
         {
-            server->socket.send(client.addressIPv6, client.port, server->buffer, msgSize);
+            server->socket.send(client.addressIPv6, client.port, buffer, serial::msgConnection::SIZE);
         }
         else if (client.addressFamily == UDC_IPV4)
         {
-            server->socket.send(client.addressIPv4, client.port, server->buffer, msgSize);
+            server->socket.send(client.addressIPv4, client.port, buffer, serial::msgConnection::SIZE);
         }
 
         client.tryConnectPrevTime = currentTime;
@@ -186,64 +172,52 @@ bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent
 template<class T>
 void tryReadPing(UdcServer* server, uint32_t msgSize, const T& address, uint16_t port)
 {
-    UdcMsgPingPong msg;
-
-    // Parse the message
-    if (!udcReadMessage(server->buffer, msgSize, msg))
+    if (msgSize != serial::msgPingPong::SIZE)
     {
         return;
     }
 
-//    // Validate that the client is this one
-//    if (!cmpEndPointId(msg.clientId, server->id))
-//    {
-//        // Allow the msg to assign server ID in the case that the server was deleted
-//        // and re-instantiated (id reset to 0)
-//        if (isNullEndPointId(server->id))
-//        {
-//            server->id = msg.clientId;
-//        }
-//        else
-//        {
-//            return;
-//        }
-//    }
-
-    msgSize = server->bufferSize;
-
-    // Generate a pong response
-    udcGenerateMessage(
-        server->buffer,
-        msgSize,
-        msg,
-        server->signature,
-        UDC_MSG_PONG);
+    // Change the message ID UDC_MSG_PONG to UDC_MSG_PONG
+    // everything else can stay the same
+    auto& buffer = server->buffer;
+    serial::msgHeader::serializeMsgId(buffer, UDC_MSG_PONG);
 
     // Send pong
-    server->socket.send(address, port, server->buffer, msgSize);
+    server->socket.send(address, port, server->buffer, serial::msgPingPong::SIZE);
 }
 
 // UDC_MSG_PONG
 bool tryReadPong(UdcServer* server, uint32_t msgSize, UdcEvent& event)
 {
-    UdcMsgPingPong msg;
+//    UdcMsgPingPong msg;
+//
+//    // Parse the message
+//    if (!udcReadMessage(server->buffer, msgSize, msg))
+//    {
+//        return false;
+//    }
 
-    // Parse the message
-    if (!udcReadMessage(server->buffer, msgSize, msg))
+    if (msgSize != serial::msgPingPong::SIZE)
     {
         return false;
     }
 
-    auto it = server->clients.find(msg.clientId);
+    UdcEndPointId endPointId;
+    serial::msgPingPong::deserializeEndPointId(server->buffer, endPointId);
+
+    auto it = server->clients.find(endPointId);
 
     if (it != server->clients.end())
     {
+        uint32_t timeStamp;
+        serial::msgPingPong::deserializeTimeStamp(server->buffer, timeStamp);
+
         auto& client = it->second;
 
         auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch());
 
-        auto pingTime = std::chrono::milliseconds(msg.timeOnServer);
+        auto pingTime = std::chrono::milliseconds(timeStamp);
 
         // check that time is valid
         if (currentTime < pingTime)
@@ -276,39 +250,14 @@ bool tryReadPong(UdcServer* server, uint32_t msgSize, UdcEvent& event)
 template<class T>
 void tryReadConnectionRequest(UdcServer* server, uint32_t msgSize, const T& address, uint16_t port)
 {
-    UdcMsgConnection msg;
-
-    // Parse the message
-    if (!udcReadMessage(server->buffer, msgSize, msg))
+    if (msgSize != serial::msgConnection::SIZE)
     {
         return;
     }
 
-//    // If this server doesn't know its ID, then grab it from the connection request
-//    if (isNullEndPointId(server->id))
-//    {
-//        server->id = msg.clientId;
-//    }
-//    else // Otherwise, send this server's ID
-//    {
-//        msg.clientId = server->id;
-//    }
-
-//    // If the client doesn't know its ID, then generate one for it
-//    if (isNullEndPointId(msg.serverId))
-//    {
-//        msg.serverId = newEndPointId(address, port);
-//    }
-
-    // Generate a handshake response
-    msgSize = server->bufferSize;
-
-    udcGenerateMessage(
-        server->buffer,
-        msgSize,
-        msg,
-        server->signature,
-        UDC_MSG_CONNECTION_HANDSHAKE);
+    // Change message ID from UDC_CONNECTION_REQUEST to UDC_MSG_CONNECTION_HANDSHAKE
+    // nothing else needs to change
+    serial::msgHeader::serializeMsgId(server->buffer, UDC_MSG_CONNECTION_HANDSHAKE);
 
     // Send handshake
     server->socket.send(address, port, server->buffer, msgSize);
@@ -318,8 +267,6 @@ void tryReadConnectionRequest(UdcServer* server, uint32_t msgSize, const T& addr
 template<class T>
 bool tryReadConnectionHandshake(UdcServer* server, uint32_t msgSize, const T& address, UdcEvent& event)
 {
-    UdcMsgConnection msg;
-
     // If there are no pending clients,
     // then ignore
     if (server->pendingClients.empty())
@@ -327,39 +274,41 @@ bool tryReadConnectionHandshake(UdcServer* server, uint32_t msgSize, const T& ad
         return false;
     }
 
-    // Parse the message
-    if (!udcReadMessage(server->buffer, msgSize, msg))
+    if (msgSize != serial::msgConnection::SIZE)
     {
         return false;
     }
 
+    UdcEndPointId endPointId;
+    serial::msgConnection::deserializeEndPointId(server->buffer, endPointId);
+
     // Check for matching client ID
-    if (server->pendingClients.front()->id == msg.clientId)
+    if (server->pendingClients.front()->id != endPointId)
     {
-        auto& client = server->pendingClients.front();
-
-        event.eventType = UDC_EVENT_CONNECTION_SUCCESS;
-        event.endPointId = msg.clientId;
-
-        auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch());
-
-        client->isConnected = true;
-        client->recvPrevTime = currentTime;
-
-        server->clients[msg.clientId] = std::move(client);
-        server->pendingClients.pop();
-
-        return true;
+        return false;
     }
 
-    return false;
+    auto& client = server->pendingClients.front();
+
+    event.eventType = UDC_EVENT_CONNECTION_SUCCESS;
+    event.endPointId = endPointId;
+
+    auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch());
+
+    client->isConnected = true;
+    client->recvPrevTime = currentTime;
+
+    server->clients[endPointId] = std::move(client);
+    server->pendingClients.pop();
+
+    return true;
 }
 
 template<class T>
-bool tryReadExternal(UdcServer* server, uint32_t msgSize, const T& address, uint16_t port, UdcEvent& event)
+bool tryReadUnreliable(UdcServer* server, uint32_t msgSize, const T& address, uint16_t port, UdcEvent& event)
 {
-    if (!udcReadMessage(server->buffer, msgSize))
+    if (msgSize <= serial::msgHeader::SIZE)
     {
         return false;
     }
@@ -376,8 +325,8 @@ bool tryReadExternal(UdcServer* server, uint32_t msgSize, const T& address, uint
     }
 
     event.port = port;
-    event.msgIndex = UDC_MSG_EXTERNAL_SIZE;
-    event.msgSize = msgSize - UDC_MSG_EXTERNAL_SIZE;
+    event.msgIndex = serial::msgHeader::SIZE;
+    event.msgSize = msgSize - serial::msgHeader::SIZE;
 
     return true;
 }
@@ -385,44 +334,58 @@ bool tryReadExternal(UdcServer* server, uint32_t msgSize, const T& address, uint
 template<class T>
 bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
 {
+    UdcSignature signature;
     UdcMessageId msgId;
     uint16_t port;
     T address;
 
+    auto& buffer = server->buffer;
     uint32_t msgSize = server->bufferSize;
 
-    while (server->socket.receive(address, port, server->buffer, msgSize))
+    while (server->socket.receive(address, port, buffer, msgSize))
     {
         // Read message header
-        if (udcReadHeader(server->buffer, msgSize, server->signature, msgId))
+
+        if (msgSize < serial::msgHeader::SIZE)
         {
-            switch (msgId)
-            {
-                case UDC_MSG_CONNECTION_REQUEST:
-                    tryReadConnectionRequest(server, msgSize, address, port);
-                    break;
-                case UDC_MSG_CONNECTION_HANDSHAKE:
-                    if (tryReadConnectionHandshake(server, msgSize, address, event))
-                    {
-                        return true;
-                    }
-                    break;
-                case UDC_MSG_PING:
-                    tryReadPing(server, msgSize, address, port);
-                    break;
-                case UDC_MSG_PONG:
-                    if (tryReadPong(server, msgSize, event))
-                    {
-                        return true;
-                    }
-                    break;
-                case UDC_MSG_EXTERNAL:
-                    if (tryReadExternal(server, msgSize, address, port, event))
-                    {
-                        return true;
-                    }
-                    break;
-            }
+            continue;
+        }
+
+        serial::msgHeader::deserializeMsgSignature(buffer, signature);
+
+        if (memcmp(server->signature.bytes, signature.bytes, sizeof(signature.bytes)) != 0)
+        {
+            continue;
+        }
+
+        serial::msgHeader::deserializeMsgId(buffer, msgId);
+
+        switch (msgId)
+        {
+            case UDC_MSG_CONNECTION_REQUEST:
+                tryReadConnectionRequest(server, msgSize, address, port);
+                break;
+            case UDC_MSG_CONNECTION_HANDSHAKE:
+                if (tryReadConnectionHandshake(server, msgSize, address, event))
+                {
+                    return true;
+                }
+                break;
+            case UDC_MSG_PING:
+                tryReadPing(server, msgSize, address, port);
+                break;
+            case UDC_MSG_PONG:
+                if (tryReadPong(server, msgSize, event))
+                {
+                    return true;
+                }
+                break;
+            case UDC_MSG_UNRELIABLE:
+                if (tryReadUnreliable(server, msgSize, address, port, event))
+                {
+                    return true;
+                }
+                break;
         }
     }
 
@@ -594,23 +557,18 @@ void udcSendMessage(
         return;
     }
 
-    uint32_t msgSize = server->bufferSize;
-
-    udcGenerateMessage(
-        server->buffer,
-        msgSize,
-        data,
-        size,
-        server->signature,
-        UDC_MSG_EXTERNAL);
+    auto& buffer = server->buffer;
+    serial::msgHeader::serializeMsgSignature(buffer, server->signature);
+    serial::msgHeader::serializeMsgId(buffer, UDC_MSG_UNRELIABLE);
+    serial::msgUnreliable::serializeData(buffer, data, size);
 
     if (client.addressFamily == UDC_IPV6)
     {
-        server->socket.send(client.addressIPv6, client.port, server->buffer, msgSize);
+        server->socket.send(client.addressIPv6, client.port, buffer, serial::msgHeader::SIZE + size);
     }
     else
     {
-        server->socket.send(client.addressIPv4, client.port, server->buffer, msgSize);
+        server->socket.send(client.addressIPv4, client.port, buffer, serial::msgHeader::SIZE + size);
     }
 }
 

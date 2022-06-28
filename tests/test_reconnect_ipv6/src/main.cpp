@@ -9,10 +9,12 @@
 
 int main()
 {
+    UdcSignature sig = {{0x01, 0x02, 0x03, 0x04}};
+
     std::vector<uint8_t> buffer(2048);
 
     // Create nodeA
-    UdcServer* nodeA = udcCreateServer(0x01020304, 1234, 2345, buffer.data(), buffer.size(), "test_reconnect_ipv4_logA.txt");
+    UdcServer* nodeA = udcCreateServer(sig, 1234, 2345, buffer.data(), buffer.size(), "test_reconnect_ipv4_logA.txt");
 
     if (nodeA == nullptr)
     {
@@ -21,7 +23,7 @@ int main()
     }
 
     // Create nodeB
-    UdcServer* nodeB = udcCreateServer(0x01020304, 1235, 2346, buffer.data(), buffer.size(), "test_reconnect_ipv4_logB.txt");
+    UdcServer* nodeB = udcCreateServer(sig, 1235, 2346, buffer.data(), buffer.size(), "test_reconnect_ipv4_logB.txt");
 
     if (nodeB == nullptr)
     {
