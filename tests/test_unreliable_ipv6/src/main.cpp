@@ -15,7 +15,7 @@ int main()
     std::vector<uint8_t> buffer(2048);
 
     // Create nodeA
-    UdcServer* nodeA = udcCreateServer(sig, 1234, 2345, buffer.data(), buffer.size(), "test_sendrecv_ipv4_logA.txt");
+    UdcServer* nodeA = udcCreateServer(sig, 1234, 2345, buffer.data(), buffer.size(), "test_sendrecv_ipv6_logA.txt");
 
     if (nodeA == nullptr)
     {
@@ -24,7 +24,7 @@ int main()
     }
 
     // Create nodeB
-    UdcServer* nodeB = udcCreateServer(sig, 1235, 2346, buffer.data(), buffer.size(), "test_sendrecv_ipv4_logB.txt");
+    UdcServer* nodeB = udcCreateServer(sig, 1235, 2346, buffer.data(), buffer.size(), "test_sendrecv_ipv6_logB.txt");
 
     if (nodeB == nullptr)
     {
@@ -45,7 +45,7 @@ int main()
 
     // Receive until connected
     bool connected = false;
-    UdcEvent* event;
+    const UdcEvent* event;
 
     auto t0 = std::chrono::system_clock::now();
 
@@ -58,7 +58,7 @@ int main()
         {
             udcDeleteServer(nodeA);
             udcDeleteServer(nodeB);
-            std::cout << "failed to fully connect\n";
+            std::cout << "took too long.\n";
             return -1;
         }
 
@@ -100,7 +100,7 @@ int main()
 
                     if (!udcGetResultExternalIPv6Event(event, ip, port, index, size))
                     {
-                        std::cout << "couldn't read external ipv4 event\n";
+                        std::cout << "couldn't read external ipv6 event\n";
                         udcDeleteServer(nodeA);
                         udcDeleteServer(nodeB);
                         return -1;

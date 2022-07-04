@@ -43,7 +43,7 @@ int main()
     }
 
     // Receive until connected
-    UdcEvent* event;
+    const UdcEvent* event;
 
     auto t0 = std::chrono::system_clock::now();
     bool connected = false;

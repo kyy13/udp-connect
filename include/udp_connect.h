@@ -55,7 +55,7 @@ extern "C"
     };
 
     // A locally unique identifier for a node
-    using UdcEndPointId = uint32_t;
+    typedef uint32_t UdcEndPointId;
 
     // Packet signature
     struct UdcSignature
@@ -141,7 +141,7 @@ extern "C"
 
     // Main update loop
     // process events until nullptr is returned
-    UdcEvent* udcProcessEvents(UdcServer* server);
+    const UdcEvent* udcProcessEvents(UdcServer* server);
 
     // Get the type of event that was returned by udcProcessEvents()
     UdcEventType udcGetEventType(const UdcEvent* event);

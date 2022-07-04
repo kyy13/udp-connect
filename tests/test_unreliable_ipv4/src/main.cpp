@@ -45,7 +45,7 @@ int main()
 
     // Receive until connected
     bool connected = false;
-    UdcEvent* event;
+    const UdcEvent* event;
 
     auto t0 = std::chrono::system_clock::now();
 
@@ -58,7 +58,7 @@ int main()
         {
             udcDeleteServer(nodeA);
             udcDeleteServer(nodeB);
-            std::cout << "failed to fully connect\n";
+            std::cout << "took too long.\n";
             return -1;
         }
 
