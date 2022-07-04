@@ -15,7 +15,7 @@ set(
     src/UdcMessage.cpp
     src/UdcPacketLogger.cpp
     src/UdcServer.cpp
-    src/UdcConnection.cpp
+        src/UdcClient.cpp
 )
 
 IF(WIN32)

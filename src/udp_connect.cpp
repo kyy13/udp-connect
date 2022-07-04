@@ -69,108 +69,48 @@ bool udcTryParseAddressIPv6(
     return UdcSocket::stringToIPv6(nodeName, serviceName, address, port);
 }
 
-// UDC_MSG_PING
-bool trySendPing(UdcServer* server, UdcConnection& client, UdcEvent& event)
-{
-    const auto pingPeriod = std::min(
-        std::chrono::milliseconds(500),
-        client.tryConnectTimeout / 10);
-
-    const auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch());
-
-    // Check if enough time has elapsed to send another ping
-    const auto deltaPing = currentTime - client.pingPrevTime;
-    if (deltaPing >= pingPeriod)
-    {
-        // Send connection request
-        assert(server->bufferSize >= serial::msgPingPong::SIZE);
-
-        auto& buffer = server->buffer;
-        serial::msgHeader::serializeMsgSignature(buffer, server->signature);
-        serial::msgHeader::serializeMsgId(buffer, UDC_MSG_PING);
-        serial::msgPingPong::serializeEndPointId(buffer, client.id);
-        serial::msgPingPong::serializeTimeStamp(buffer, currentTime.count());
-
-        if (client.addressFamily == UDC_IPV6)
-        {
-            server->socket.send(client.addressIPv6, client.port, buffer, serial::msgPingPong::SIZE);
-        }
-        else if (client.addressFamily == UDC_IPV4)
-        {
-            server->socket.send(client.addressIPv4, client.port, buffer, serial::msgPingPong::SIZE);
-        }
-
-        client.pingPrevTime = currentTime;
-    }
-
-    // Check if enough time has elapsed since last pong to have a lost connection
-    const auto deltaReceived = currentTime - client.recvPrevTime;
-    if (deltaReceived >= client.tryConnectTimeout && client.isConnected)
-    {
-        event.eventType = UDC_EVENT_CONNECTION_LOST;
-        event.endPointId = client.id;
-        client.isConnected = false;
-        return true;
-    }
-
-    return false;
-}
-
 // UDC_MSG_CONNECTION_REQUEST
-bool trySendConnectionRequest(UdcServer* server, UdcConnection& client, UdcEvent& event)
-{
-    assert(!server->pendingClients.empty());
-
-    constexpr auto tryConnectSendPeriod = std::chrono::milliseconds {100};
-
-    auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch());
-
-    // Check if trying to connect is taking too long
-    auto totalTime = currentTime - client.tryConnectFirstTime;
-    if (totalTime >= client.tryConnectTimeout)
-    {
-        // Send a timeout event
-        event.eventType = UDC_EVENT_CONNECTION_TIMEOUT;
-        event.endPointId = client.id;
-
-        // Timed-out, remove pending client from the queue
-        server->pendingClients.pop();
-
-        return true;
-    }
-
-    // Check if it has been long enough to send another connection request
-    auto deltaTime = currentTime - client.tryConnectPrevTime;
-    if (deltaTime >= tryConnectSendPeriod)
-    {
-        // Send connection request
-        assert(server->bufferSize >= serial::msgConnection::SIZE);
-
-        auto& buffer = server->buffer;
-        serial::msgHeader::serializeMsgSignature(buffer, server->signature);
-        serial::msgHeader::serializeMsgId(buffer, UDC_MSG_CONNECTION_REQUEST);
-        serial::msgConnection::serializeEndPointId(buffer, client.id);
-
-        if (client.addressFamily == UDC_IPV6)
-        {
-            server->socket.send(client.addressIPv6, client.port, buffer, serial::msgConnection::SIZE);
-        }
-        else if (client.addressFamily == UDC_IPV4)
-        {
-            server->socket.send(client.addressIPv4, client.port, buffer, serial::msgConnection::SIZE);
-        }
-
-        client.tryConnectPrevTime = currentTime;
-    }
-
-    return false;
-}
+//bool trySendConnectionRequest(UdcServer* server, UdcClient& client, UdcEvent& event)
+//{
+//    assert(!server->pendingClients.empty());
+//
+//    auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+//        std::chrono::system_clock::now().time_since_epoch());
+//
+//    // Check if trying to connect is taking too long
+//    if (client.needsConnectionTimeoutEvent(currentTime))
+//    {
+//        // Send a timeout event
+//        event.eventType = UDC_EVENT_CONNECTION_TIMEOUT;
+//        event.endPointId = client.id();
+//
+//        // Timed-out, remove pending client from the queue
+//        server->pendingClients.pop();
+//
+//        return true;
+//    }
+//
+//    // Check if it has been long enough to send another connection request
+//    if (client.needsConnectionAttempt(currentTime))
+//    {
+//        client.retryConnecting(currentTime);
+//
+//        // Send connection request
+//        assert(server->bufferSize >= serial::msgConnection::SIZE);
+//
+//        auto& buffer = server->buffer;
+//        serial::msgHeader::serializeMsgSignature(buffer, server->signature);
+//        serial::msgHeader::serializeMsgId(buffer, UDC_MSG_CONNECTION_REQUEST);
+//        serial::msgConnection::serializeEndPointId(buffer, client.id());
+//
+//        server->socket.send(client.outgoingAddress(), buffer, serial::msgConnection::SIZE);
+//    }
+//
+//    return false;
+//}
 
 // UDC_MSG_PING
-template<class T>
-void tryReadPing(UdcServer* server, uint32_t msgSize, const T& address, uint16_t port)
+void tryReadPing(UdcServer* server, uint32_t msgSize, const UdcAddressMux& address)
 {
     if (msgSize != serial::msgPingPong::SIZE)
     {
@@ -183,20 +123,12 @@ void tryReadPing(UdcServer* server, uint32_t msgSize, const T& address, uint16_t
     serial::msgHeader::serializeMsgId(buffer, UDC_MSG_PONG);
 
     // Send pong
-    server->socket.send(address, port, server->buffer, serial::msgPingPong::SIZE);
+    server->socket.send(address, server->buffer, serial::msgPingPong::SIZE);
 }
 
 // UDC_MSG_PONG
 bool tryReadPong(UdcServer* server, uint32_t msgSize, UdcEvent& event)
 {
-//    UdcMsgPingPong msg;
-//
-//    // Parse the message
-//    if (!udcReadMessage(server->buffer, msgSize, msg))
-//    {
-//        return false;
-//    }
-
     if (msgSize != serial::msgPingPong::SIZE)
     {
         return false;
@@ -225,19 +157,11 @@ bool tryReadPong(UdcServer* server, uint32_t msgSize, UdcEvent& event)
             return false;
         }
 
-        // Calculate ping value and set the pong timer
-        client->pingValue = currentTime - pingTime;
-
-        // Count as message received from client
-        client->recvPrevTime = currentTime;
-
         // If client connection was lost, then the client has now regained connection
-        if (!client->isConnected)
+        if (client->receivePong(pingTime, currentTime))
         {
-            client->isConnected = true;
-
             event.eventType = UDC_EVENT_CONNECTION_REGAINED;
-            event.endPointId = client->id;
+            event.endPointId = client->id();
 
             return true;
         }
@@ -247,8 +171,7 @@ bool tryReadPong(UdcServer* server, uint32_t msgSize, UdcEvent& event)
 }
 
 // UDC_MSG_CONNECTION_REQUEST
-template<class T>
-void tryReadConnectionRequest(UdcServer* server, uint32_t msgSize, const T& address, uint16_t port)
+void tryReadConnectionRequest(UdcServer* server, uint32_t msgSize, const UdcAddressMux& address)
 {
     if (msgSize != serial::msgConnection::SIZE)
     {
@@ -260,12 +183,11 @@ void tryReadConnectionRequest(UdcServer* server, uint32_t msgSize, const T& addr
     serial::msgHeader::serializeMsgId(server->buffer, UDC_MSG_CONNECTION_HANDSHAKE);
 
     // Send handshake
-    server->socket.send(address, port, server->buffer, msgSize);
+    server->socket.send(address, server->buffer, msgSize);
 }
 
 // UDC_MSG_CONNECTION_HANDSHAKE
-template<class T>
-bool tryReadConnectionHandshake(UdcServer* server, uint32_t msgSize, const T& address, UdcEvent& event)
+bool tryReadConnectionHandshake(UdcServer* server, uint32_t msgSize, const UdcAddressMux& address, UdcEvent& event)
 {
     // If there are no pending clients,
     // then ignore
@@ -283,7 +205,7 @@ bool tryReadConnectionHandshake(UdcServer* server, uint32_t msgSize, const T& ad
     serial::msgConnection::deserializeEndPointId(server->buffer, endPointId);
 
     // Check for matching client ID
-    if (server->pendingClients.front()->id != endPointId)
+    if (server->pendingClients.front()->id() != endPointId)
     {
         return false;
     }
@@ -296,8 +218,7 @@ bool tryReadConnectionHandshake(UdcServer* server, uint32_t msgSize, const T& ad
     auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
 
-    client->isConnected = true;
-    client->recvPrevTime = currentTime;
+    client->receiveHandshake(currentTime);
 
     server->clients[endPointId] = std::move(client);
     server->pendingClients.pop();
@@ -305,44 +226,41 @@ bool tryReadConnectionHandshake(UdcServer* server, uint32_t msgSize, const T& ad
     return true;
 }
 
-template<class T>
-bool tryReadUnreliable(UdcServer* server, uint32_t msgSize, const T& address, uint16_t port, UdcEvent& event)
+bool tryReadUnreliable(UdcServer* server, uint32_t msgSize, const UdcAddressMux& address, UdcEvent& event)
 {
     if (msgSize <= serial::msgHeader::SIZE)
     {
         return false;
     }
 
-    if constexpr (std::is_same<T, UdcAddressIPv4>::value)
+    if (address.family == UDC_IPV4)
     {
         event.eventType = UDC_EVENT_RECEIVE_MESSAGE_IPV4;
-        event.addressIPv4 = address;
+        event.addressIPv4 = address.address.ipv4;
     }
     else
     {
         event.eventType = UDC_EVENT_RECEIVE_MESSAGE_IPV6;
-        event.addressIPv6 = address;
+        event.addressIPv6 = address.address.ipv6;
     }
 
-    event.port = port;
+    event.port = address.port;
     event.msgIndex = serial::msgHeader::SIZE;
     event.msgSize = msgSize - serial::msgHeader::SIZE;
 
     return true;
 }
 
-template<class T>
 bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
 {
     UdcSignature signature;
     UdcMessageId msgId;
-    uint16_t port;
-    T address;
+    UdcAddressMux address;
 
     auto& buffer = server->buffer;
     uint32_t msgSize = server->bufferSize;
 
-    while (server->socket.receive(address, port, buffer, msgSize))
+    while (server->socket.receive(address, buffer, msgSize))
     {
         // Read message header
 
@@ -363,7 +281,7 @@ bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
         switch (msgId)
         {
             case UDC_MSG_CONNECTION_REQUEST:
-                tryReadConnectionRequest(server, msgSize, address, port);
+                tryReadConnectionRequest(server, msgSize, address);
                 break;
             case UDC_MSG_CONNECTION_HANDSHAKE:
                 if (tryReadConnectionHandshake(server, msgSize, address, event))
@@ -372,7 +290,7 @@ bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
                 }
                 break;
             case UDC_MSG_PING:
-                tryReadPing(server, msgSize, address, port);
+                tryReadPing(server, msgSize, address);
                 break;
             case UDC_MSG_PONG:
                 if (tryReadPong(server, msgSize, event))
@@ -381,7 +299,7 @@ bool udcReceiveMessage(UdcServer* server, UdcEvent& event)
                 }
                 break;
             case UDC_MSG_UNRELIABLE:
-                if (tryReadUnreliable(server, msgSize, address, port, event))
+                if (tryReadUnreliable(server, msgSize, address, event))
                 {
                     return true;
                 }
@@ -434,17 +352,21 @@ bool udcTryConnectIPv4(
     auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
 
-    auto clientInfo = std::make_unique<UdcConnection>();
+    UdcAddressMux address =
+        {
+            .family = UDC_IPV4,
+            .address = {.ipv4 = ip},
+            .port = port,
+        };
 
-    endPointId = (server->idCounter++);
-    clientInfo->id = endPointId;
-    clientInfo->isConnected = false;
-    clientInfo->addressFamily = UDC_IPV4;
-    clientInfo->addressIPv4 = ip;
-    clientInfo->port = port;
-    clientInfo->tryConnectTimeout = std::chrono::milliseconds(timeout);
-    clientInfo->tryConnectFirstTime = currentTime;
-    clientInfo->tryConnectPrevTime = std::chrono::milliseconds(0);
+    auto clientInfo = std::make_unique<UdcClient>(
+        (server->idCounter++),
+        address,
+        std::chrono::milliseconds(timeout),
+        std::min(std::chrono::milliseconds(500),
+        std::chrono::milliseconds(timeout) / 10));
+
+    clientInfo->startConnecting(currentTime);
 
     // Add to pending
     server->pendingClients.push(std::move(clientInfo));
@@ -467,17 +389,21 @@ bool udcTryConnectIPv6(
     auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
 
-    auto clientInfo = std::make_unique<UdcConnection>();
+    UdcAddressMux address =
+        {
+            .family = UDC_IPV6,
+            .address = {.ipv6 = ip},
+            .port = port,
+        };
 
-    endPointId = (server->idCounter++);
-    clientInfo->id = endPointId;
-    clientInfo->isConnected = false;
-    clientInfo->addressFamily = UDC_IPV6;
-    clientInfo->addressIPv6 = ip;
-    clientInfo->port = port;
-    clientInfo->tryConnectTimeout = std::chrono::milliseconds(timeout);
-    clientInfo->tryConnectFirstTime = currentTime;
-    clientInfo->tryConnectPrevTime = std::chrono::milliseconds(0);
+    auto clientInfo = std::make_unique<UdcClient>(
+        (server->idCounter++),
+        address,
+        std::chrono::milliseconds(timeout),
+        std::min(std::chrono::milliseconds(500),
+        std::chrono::milliseconds(timeout) / 10));
+
+    clientInfo->startConnecting(currentTime);
 
     // Add to pending
     server->pendingClients.push(std::move(clientInfo));
@@ -487,32 +413,79 @@ bool udcTryConnectIPv6(
 
 UdcEvent* udcProcessEvents(UdcServer* server)
 {
+    const auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch());
+
     // Send outgoing pending connection requests
     if (!server->pendingClients.empty())
     {
-        if (trySendConnectionRequest(server, *server->pendingClients.front(), server->event))
+        auto& client = *server->pendingClients.front();
+        auto& event = server->event;
+
+        // Check if trying to connect is taking too long
+        if (client.needsConnectionTimeoutEvent(currentTime))
         {
-            return &server->event;
+            // Send a timeout event
+            event.eventType = UDC_EVENT_CONNECTION_TIMEOUT;
+            event.endPointId = client.id();
+
+            // Timed-out, remove pending client from the queue
+            server->pendingClients.pop();
+
+            return &event;
+        }
+
+        // Check if it has been long enough to send another connection request
+        if (client.needsConnectionAttempt(currentTime))
+        {
+            client.retryConnecting(currentTime);
+
+            // Send connection request
+            assert(server->bufferSize >= serial::msgConnection::SIZE);
+
+            auto& buffer = server->buffer;
+            serial::msgHeader::serializeMsgSignature(buffer, server->signature);
+            serial::msgHeader::serializeMsgId(buffer, UDC_MSG_CONNECTION_REQUEST);
+            serial::msgConnection::serializeEndPointId(buffer, client.id());
+
+            server->socket.send(client.outgoingAddress(), buffer, serial::msgConnection::SIZE);
         }
     }
 
     // Send pings
     for (auto& pair : server->clients)
     {
-        if (trySendPing(server, *pair.second, server->event))
+        auto& client = *pair.second;
+        auto& event = server->event;
+
+        // Send PING
+        if (client.needsPing(currentTime))
         {
-            return &server->event;
+            assert(server->bufferSize >= serial::msgPingPong::SIZE);
+            auto& buffer = server->buffer;
+
+            serial::msgHeader::serializeMsgSignature(buffer, server->signature);
+            serial::msgHeader::serializeMsgId(buffer, UDC_MSG_PING);
+            serial::msgPingPong::serializeEndPointId(buffer, client.id());
+            serial::msgPingPong::serializeTimeStamp(buffer, currentTime.count());
+
+            server->socket.send(client.outgoingAddress(), buffer, serial::msgPingPong::SIZE);
+        }
+
+        // Throw connection lost event if needed
+        if (client.needsConnectionLostEvent(currentTime))
+        {
+            client.setConnectionLost();
+
+            event.eventType = UDC_EVENT_CONNECTION_LOST;
+            event.endPointId = client.id();
+
+            return &event;
         }
     }
 
-    // Receive IPv6
-    if (udcReceiveMessage<UdcAddressIPv6>(server, server->event))
-    {
-        return &server->event;
-    }
-
-    // Receive IPv4
-    if (udcReceiveMessage<UdcAddressIPv4>(server, server->event))
+    // Receive messages
+    if (udcReceiveMessage(server, server->event))
     {
         return &server->event;
     }
@@ -552,24 +525,18 @@ void udcSendMessage(
 
     auto& client = *(it->second);
 
-    if (!client.isConnected)
+    if (!client.connected())
     {
         return;
     }
 
     auto& buffer = server->buffer;
+
     serial::msgHeader::serializeMsgSignature(buffer, server->signature);
     serial::msgHeader::serializeMsgId(buffer, UDC_MSG_UNRELIABLE);
     serial::msgUnreliable::serializeData(buffer, data, size);
 
-    if (client.addressFamily == UDC_IPV6)
-    {
-        server->socket.send(client.addressIPv6, client.port, buffer, serial::msgHeader::SIZE + size);
-    }
-    else
-    {
-        server->socket.send(client.addressIPv4, client.port, buffer, serial::msgHeader::SIZE + size);
-    }
+    server->socket.send(client.outgoingAddress(), buffer, serial::msgHeader::SIZE + size);
 }
 
 bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcAddressIPv4& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize)

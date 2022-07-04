@@ -40,10 +40,18 @@ extern "C"
         UDC_EVENT_RECEIVE_MESSAGE_IPV6 = 5u,
     };
 
-    enum UdcReliability
+    enum UdcReliability : uint32_t
     {
-        UDC_UNRELIABLE_PACKET,
-        UDC_RELIABLE_PACKET,
+        // Unreliable packets are basic UDP packets
+        // there is no guarantee that they arrive
+        UDC_UNRELIABLE_PACKET = 0u,
+
+        // Reliable packets are guaranteed to arrive in order per EndPoint
+        // and arrive exactly once. If connection is lost, then the reliable
+        // messages will wait to be sent until connection is regained. If the
+        // connection is closed with udcDisconnect, then pending reliable messages
+        // are cleared.
+        UDC_RELIABLE_PACKET = 1u,
     };
 
     // A locally unique identifier for a node

@@ -16,11 +16,19 @@ enum UdcMessageId : uint8_t
     UDC_MSG_PING,
     UDC_MSG_PONG,
     UDC_MSG_UNRELIABLE,
+    UDC_MSG_RELIABLE_RESET,
+    UDC_MSG_RELIABLE_0,
+    UDC_MSG_RELIABLE_1,
+    UDC_MSG_RELIABLE_HANDSHAKE_RESET,
+    UDC_MSG_RELIABLE_HANDSHAKE_0,
+    UDC_MSG_RELIABLE_HANDSHAKE_1,
 };
 
 namespace serial
 {
-    // All messages header
+    // Header (5 bytes)
+    // Signature (4 bytes)
+    // MessageID (1 byte)
     namespace msgHeader
     {
         // Size of the deserialized message in bytes
@@ -75,6 +83,27 @@ namespace serial
     {
         // SIZE is variable
         // msgHeader::SIZE + data size
+
+        void serializeData(uint8_t* msgBuffer, const uint8_t* data, uint32_t dataSize);
+
+        void deserializeData(const uint8_t* msgBuffer, uint8_t* data, uint32_t dataSize);
+    }
+
+    namespace msgReliable
+    {
+        // Size of the deserialized message in bytes
+        constexpr uint32_t SIZE =
+            msgHeader::SIZE +
+            sizeof(UdcEndPointId) +
+            sizeof(uint32_t);
+
+        void serializeEndPointId(uint8_t* msgBuffer, UdcEndPointId endPointId);
+
+        void serializeTimeStamp(uint8_t* msgBuffer, uint32_t timeStamp);
+
+        void deserializeEndPointId(const uint8_t* msgBuffer, UdcEndPointId& endPointId);
+
+        void deserializeTimeStamp(const uint8_t* msgBuffer, uint32_t& timeStamp);
 
         void serializeData(uint8_t* msgBuffer, const uint8_t* data, uint32_t dataSize);
 

@@ -35,6 +35,16 @@ bool UdcSocketMux::bind(uint16_t portIPv6, uint16_t portIPv4)
     return result;
 }
 
+bool UdcSocketMux::send(const UdcAddressMux& address, const uint8_t* data, uint32_t size) const
+{
+    if (address.family == UDC_IPV6)
+    {
+        return send(address.address.ipv6, address.port, data, size);
+    }
+
+    return send(address.address.ipv4, address.port, data, size);
+}
+
 bool UdcSocketMux::send(const UdcAddressIPv4& address, uint16_t port, const uint8_t* data, uint32_t size) const
 {
     // Not connected
@@ -71,6 +81,23 @@ bool UdcSocketMux::send(const UdcAddressIPv6& address, uint16_t port, const uint
     }
 
     return result;
+}
+
+bool UdcSocketMux::receive(UdcAddressMux& address, uint8_t* buffer, uint32_t& size)
+{
+    if (receive(address.address.ipv6, address.port, buffer, size))
+    {
+        address.family = UDC_IPV6;
+        return true;
+    }
+
+    if (receive(address.address.ipv4, address.port, buffer, size))
+    {
+        address.family = UDC_IPV4;
+        return true;
+    }
+
+    return false;
 }
 
 bool UdcSocketMux::receive(UdcAddressIPv4& address, uint16_t& port, uint8_t* buffer, uint32_t& size)

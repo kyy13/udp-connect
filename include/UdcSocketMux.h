@@ -5,6 +5,7 @@
 #define UDC_SOCKET_MUX_H
 
 #include "UdcSocket.h"
+#include "UdcAddressMux.h"
 #include "UdcPacketLogger.h"
 
 #include <memory>
@@ -25,10 +26,22 @@ public:
     bool bind(uint16_t portIPv6, uint16_t portIPv4);
 
     // Send a message
+    bool send(const UdcAddressMux& address, const uint8_t* data, uint32_t size) const;
+
+    // Send a message
     bool send(const UdcAddressIPv4& address, uint16_t port, const uint8_t* data, uint32_t size) const;
 
     // Send a message
     bool send(const UdcAddressIPv6& address, uint16_t port, const uint8_t* data, uint32_t size) const;
+
+    // Receive messages from the connected port and
+    // returns false when there are no messages to receive
+    // ignores messages that are larger than maxMessageSize
+    [[nodiscard]]
+    bool receive(
+        UdcAddressMux& address,
+        uint8_t* buffer,
+        uint32_t& size);
 
     // Receive messages from the connected port and
     // returns false when there are no messages to receive

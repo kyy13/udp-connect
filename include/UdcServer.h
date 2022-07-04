@@ -7,7 +7,7 @@
 #include "udp_connect.h"
 #include "UdcSocketMux.h"
 #include "UdcPacketLogger.h"
-#include "UdcConnection.h"
+#include "UdcClient.h"
 #include "UdcEvent.h"
 
 #include <memory>
@@ -31,10 +31,13 @@ struct UdcServer
     UdcEvent event;
 
     // Maps temporary device ID to clients pending connection
-    std::queue<std::unique_ptr<UdcConnection>> pendingClients;
+    std::queue<std::unique_ptr<UdcClient>> pendingClients;
 
     // Maps device ID to connected clients
-    std::unordered_map<UdcEndPointId, std::unique_ptr<UdcConnection>> clients;
+    std::unordered_map<UdcEndPointId, std::unique_ptr<UdcClient>> clients;
+
+    // Maps IP/port to endpointId
+
 
     // Message Buffer
     uint8_t* buffer;
