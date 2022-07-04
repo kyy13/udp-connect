@@ -40,25 +40,6 @@ public:
     [[nodiscard]]
     const UdcEvent* updateClientConnectionStatus(std::chrono::milliseconds time);
 
-    void processConnectionRequest(const UdcAddressMux& fromAddress);
-
-    [[nodiscard]]
-    const UdcEvent* processConnectionHandshake(const UdcAddressMux& fromAddress, std::chrono::milliseconds time);
-
-    void processPing(const UdcAddressMux& fromAddress);
-
-    [[nodiscard]]
-    const UdcEvent* processPong(const UdcAddressMux& fromAddress, std::chrono::milliseconds time);
-
-    [[nodiscard]]
-    const UdcEvent* processUnreliable(const UdcAddressMux& fromAddress, uint32_t msgSize);
-
-    [[nodiscard]]
-    bool tryGetClient(UdcEndPointId clientId, UdcClient** client);
-
-    [[nodiscard]]
-    bool tryGetFirstPendingClient(UdcClient** client);
-
 protected:
 
     UdcSocketMux m_socket;
@@ -78,6 +59,25 @@ protected:
     // Message Buffer
     uint8_t* m_messageBuffer;
     uint32_t m_messageBufferSize;
+
+    void processConnectionRequest(const UdcAddressMux& fromAddress);
+
+    [[nodiscard]]
+    const UdcEvent* processConnectionHandshake(const UdcAddressMux& fromAddress, std::chrono::milliseconds time);
+
+    void processPing(const UdcAddressMux& fromAddress);
+
+    [[nodiscard]]
+    const UdcEvent* processPong(const UdcAddressMux& fromAddress, std::chrono::milliseconds time);
+
+    [[nodiscard]]
+    const UdcEvent* processUnreliable(const UdcAddressMux& fromAddress, uint32_t msgSize);
+
+    [[nodiscard]]
+    bool tryGetClient(UdcEndPointId clientId, UdcClient** client);
+
+    [[nodiscard]]
+    bool tryGetFirstPendingClient(UdcClient** client);
 };
 
 #endif

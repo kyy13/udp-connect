@@ -81,8 +81,9 @@ namespace serial
     // UDC_MSG_UNRELIABLE
     namespace msgUnreliable
     {
-        // SIZE is variable
-        // msgHeader::SIZE + data size
+        // Size of minimum deserialized message in bytes
+        constexpr uint32_t SIZE =
+            msgHeader::SIZE;
 
         void serializeData(uint8_t* msgBuffer, const uint8_t* data, uint32_t dataSize);
 
@@ -91,7 +92,7 @@ namespace serial
 
     namespace msgReliable
     {
-        // Size of the deserialized message in bytes
+        // Size of minimum deserialized message in bytes
         constexpr uint32_t SIZE =
             msgHeader::SIZE +
             sizeof(UdcEndPointId) +

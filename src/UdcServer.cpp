@@ -14,10 +14,17 @@ UdcServerImpl::UdcServerImpl(UdcSignature signature, uint16_t portIPv4, uint16_t
     , m_messageBuffer(buffer)
     , m_messageBufferSize(bufferSize)
 {
+    // Try to bind socket
     if (!m_socket.bind(portIPv6, portIPv4))
     {
         throw std::runtime_error("could not bind to port");
     }
+
+    // Write message signature into buffer
+    // this is needed by send/recv in every message
+    // and only needs to be rewritten if receiving message has
+    // incorrect signature
+    serial::msgHeader::serializeMsgSignature(m_messageBuffer, m_packetSignature);
 }
 
 UdcServerImpl::UdcServerImpl(UdcSignature signature, uint16_t portIPv4, uint16_t portIPv6, uint8_t* buffer, uint32_t bufferSize, const std::string& logFileName)
@@ -32,6 +39,12 @@ UdcServerImpl::UdcServerImpl(UdcSignature signature, uint16_t portIPv4, uint16_t
     {
         throw std::runtime_error("could not bind to port");
     }
+
+    // Write message signature into buffer
+    // this is needed by send/recv in every message
+    // and only needs to be rewritten if receiving message has
+    // incorrect signature
+    serial::msgHeader::serializeMsgSignature(m_messageBuffer, m_packetSignature);
 }
 
 UdcEndPointId UdcServerImpl::createUniqueId()
@@ -59,7 +72,6 @@ void UdcServerImpl::sendUnreliableMessage(UdcEndPointId endPointId, const uint8_
         return;
     }
 
-    serial::msgHeader::serializeMsgSignature(m_messageBuffer, m_packetSignature);
     serial::msgHeader::serializeMsgId(m_messageBuffer, UDC_MSG_UNRELIABLE);
     serial::msgUnreliable::serializeData(m_messageBuffer, data, size);
 
@@ -86,6 +98,8 @@ const UdcEvent* UdcServerImpl::receiveMessages(std::chrono::milliseconds time)
 
         if (memcmp(m_packetSignature.bytes, signature.bytes, sizeof(signature.bytes)) != 0)
         {
+            // Write message correct signature back into buffer
+            serial::msgHeader::serializeMsgSignature(m_messageBuffer, m_packetSignature);
             continue;
         }
 
@@ -176,7 +190,6 @@ const UdcEvent* UdcServerImpl::updatePendingClients(std::chrono::milliseconds ti
         // Send connection request
         assert(m_messageBufferSize >= serial::msgConnection::SIZE);
 
-        serial::msgHeader::serializeMsgSignature(m_messageBuffer, m_packetSignature);
         serial::msgHeader::serializeMsgId(m_messageBuffer, UDC_MSG_CONNECTION_REQUEST);
         serial::msgConnection::serializeEndPointId(m_messageBuffer, client->id());
 
@@ -197,7 +210,6 @@ const UdcEvent* UdcServerImpl::updateClientConnectionStatus(std::chrono::millise
         {
             assert(m_messageBufferSize >= serial::msgPingPong::SIZE);
 
-            serial::msgHeader::serializeMsgSignature(m_messageBuffer, m_packetSignature);
             serial::msgHeader::serializeMsgId(m_messageBuffer, UDC_MSG_PING);
             serial::msgPingPong::serializeEndPointId(m_messageBuffer, client->id());
             serial::msgPingPong::serializeTimeStamp(m_messageBuffer, time.count());
