@@ -5,8 +5,10 @@
 #define UDC_SERVER_H
 
 #include "udp_connect.h"
+
 #include "UdcSocketMux.h"
 #include "UdcPacketLogger.h"
+#include "UdcAddressHash.h"
 #include "UdcClient.h"
 #include "UdcEvent.h"
 
@@ -27,7 +29,7 @@ public:
     [[nodiscard]]
     UdcEndPointId createUniqueId();
 
-    void addPendingClient(std::unique_ptr<UdcClient> client, std::chrono::milliseconds time);
+    void addPendingClient(std::shared_ptr<UdcClient> client, std::chrono::milliseconds time);
 
     void sendUnreliableMessage(UdcEndPointId endPointId, const uint8_t* data, uint32_t size);
 
@@ -51,10 +53,13 @@ protected:
     UdcEvent m_eventBuffer;
 
     // Maps temporary device ID to clients pending connection
-    std::queue<std::unique_ptr<UdcClient>> m_pendingClients;
+    std::queue<std::shared_ptr<UdcClient>> m_pendingClients;
 
     // Maps device ID to connected clients
-    std::unordered_map<UdcEndPointId, std::unique_ptr<UdcClient>> m_clients;
+    std::unordered_map<UdcEndPointId, std::shared_ptr<UdcClient>> m_clientsById;
+
+    // Maps address to connected clients
+    UdcAddressMap<std::shared_ptr<UdcClient>> m_clientsByAddress;
 
     // Message Buffer
     uint8_t* m_messageBuffer;
@@ -75,6 +80,9 @@ protected:
 
     [[nodiscard]]
     bool tryGetClient(UdcEndPointId clientId, UdcClient** client);
+
+    [[nodiscard]]
+    bool tryGetClient(const UdcAddressMux& address, UdcClient** client);
 
     [[nodiscard]]
     bool tryGetFirstPendingClient(UdcClient** client);

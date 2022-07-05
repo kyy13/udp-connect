@@ -111,7 +111,7 @@ bool udcTryConnectIPv4(
 
     endPointId = serverImpl->createUniqueId();
 
-    auto client = std::make_unique<UdcClient>(
+    auto client = std::make_shared<UdcClient>(
         endPointId,
         address,
         std::chrono::milliseconds(timeout),
@@ -150,7 +150,7 @@ bool udcTryConnectIPv6(
 
     endPointId = serverImpl->createUniqueId();
 
-    auto client = std::make_unique<UdcClient>(
+    auto client = std::make_shared<UdcClient>(
         endPointId,
         address,
         std::chrono::milliseconds(timeout),

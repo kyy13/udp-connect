@@ -53,7 +53,7 @@ UdcEndPointId UdcServerImpl::createUniqueId()
     return m_idCounter;
 }
 
-void UdcServerImpl::addPendingClient(std::unique_ptr<UdcClient> client, std::chrono::milliseconds time)
+void UdcServerImpl::addPendingClient(std::shared_ptr<UdcClient> client, std::chrono::milliseconds time)
 {
     client->startConnecting(time);
     m_pendingClients.push(std::move(client));
@@ -201,7 +201,7 @@ const UdcEvent* UdcServerImpl::updatePendingClients(std::chrono::milliseconds ti
 
 const UdcEvent* UdcServerImpl::updateClientConnectionStatus(std::chrono::milliseconds time)
 {
-    for (auto& pair : m_clients)
+    for (auto& pair : m_clientsById)
     {
         auto* client = pair.second.get();
 
@@ -211,7 +211,6 @@ const UdcEvent* UdcServerImpl::updateClientConnectionStatus(std::chrono::millise
             assert(m_messageBufferSize >= serial::msgPingPong::SIZE);
 
             serial::msgHeader::serializeMsgId(m_messageBuffer, UDC_MSG_PING);
-            serial::msgPingPong::serializeEndPointId(m_messageBuffer, client->id());
             serial::msgPingPong::serializeTimeStamp(m_messageBuffer, time.count());
 
             m_socket.send(client->outgoingAddress(), m_messageBuffer, serial::msgPingPong::SIZE);
@@ -263,7 +262,8 @@ const UdcEvent* UdcServerImpl::processConnectionHandshake(const UdcAddressMux& f
 
     // Verify connection
     client->receiveHandshake(time);
-    m_clients[endPointId] = std::move(m_pendingClients.front());
+    m_clientsById[endPointId] = m_pendingClients.front();
+    m_clientsByAddress.insert(fromAddress, m_pendingClients.front());
     m_pendingClients.pop();
 
     m_eventBuffer.eventType = UDC_EVENT_CONNECTION_SUCCESS;
@@ -283,13 +283,9 @@ void UdcServerImpl::processPing(const UdcAddressMux& fromAddress)
 
 const UdcEvent* UdcServerImpl::processPong(const UdcAddressMux& fromAddress, std::chrono::milliseconds time)
 {
-    // Get endpoint id
-    UdcEndPointId endPointId;
-    serial::msgPingPong::deserializeEndPointId(m_messageBuffer, endPointId);
-
-    // Check if endpoint id is a client
+    // Check if fromAddress belong to a client
     UdcClient* client;
-    if (!tryGetClient(endPointId, &client))
+    if (!tryGetClient(fromAddress, &client))
     {
         return nullptr;
     }
@@ -338,9 +334,22 @@ const UdcEvent* UdcServerImpl::processUnreliable(const UdcAddressMux& fromAddres
 
 bool UdcServerImpl::tryGetClient(UdcEndPointId clientId, UdcClient** client)
 {
-    auto it = m_clients.find(clientId);
+    auto it = m_clientsById.find(clientId);
 
-    if (it == m_clients.end())
+    if (it == m_clientsById.end())
+    {
+        return false;
+    }
+
+    *client = it->second.get();
+    return true;
+}
+
+bool UdcServerImpl::tryGetClient(const UdcAddressMux& address, UdcClient** client)
+{
+    auto it = m_clientsByAddress.find(address);
+
+    if (it == m_clientsByAddress.cend())
     {
         return false;
     }

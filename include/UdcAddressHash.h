@@ -18,14 +18,21 @@ protected:
     using Map = std::unordered_map<UdcAddressMux, T, Hasher, Comparator>;
 public:
 
-    void insert(const UdcAddressMux& address, T&& val)
+    template<class U>
+    void insert(const UdcAddressMux& address, U&& val)
     {
-        m_map[address] = val;
+        static_assert(std::is_same<std::decay_t<U>, std::decay_t<T>>::value, "U must be the same as T");
+        m_map[address] = std::forward<U>(val);
     }
 
-    typename Map::iterator find(const UdcAddressMux& address)
+    typename Map::const_iterator find(const UdcAddressMux& address) const
     {
         return m_map.find(address);
+    }
+
+    typename Map::const_iterator cend() const
+    {
+        return m_map.end();
     }
 
 protected:
@@ -40,7 +47,7 @@ protected:
 
     struct Comparator
     {
-        bool operator()(const UdcAddressMux& a, UdcAddressMux& b) const
+        bool operator()(const UdcAddressMux& a, const UdcAddressMux& b) const
         {
             if (a.family != b.family)
                 return false;

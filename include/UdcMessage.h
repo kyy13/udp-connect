@@ -66,14 +66,9 @@ namespace serial
         // Size of the deserialized message in bytes
         constexpr uint32_t SIZE =
             msgHeader::SIZE +
-            sizeof(UdcEndPointId) +
             sizeof(uint32_t);
 
-        void serializeEndPointId(uint8_t* msgBuffer, UdcEndPointId endPointId);
-
         void serializeTimeStamp(uint8_t* msgBuffer, uint32_t timeStamp);
-
-        void deserializeEndPointId(const uint8_t* msgBuffer, UdcEndPointId& endPointId);
 
         void deserializeTimeStamp(const uint8_t* msgBuffer, uint32_t& timeStamp);
     }

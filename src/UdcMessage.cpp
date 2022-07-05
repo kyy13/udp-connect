@@ -47,34 +47,16 @@ namespace serial
 
     namespace msgPingPong
     {
-        void serializeEndPointId(uint8_t* msgBuffer, UdcEndPointId endPointId)
-        {
-            memcpy(msgBuffer + msgHeader::SIZE, &endPointId, sizeof(UdcEndPointId));
-        }
-
         void serializeTimeStamp(uint8_t* msgBuffer, uint32_t timeStamp)
         {
-            constexpr uint32_t offset =
-                msgHeader::SIZE +
-                sizeof(UdcEndPointId);
-
             timeStamp = htonl(timeStamp);
-            memcpy(msgBuffer + offset, &timeStamp, sizeof(timeStamp));
-        }
-
-        void deserializeEndPointId(const uint8_t* msgBuffer, UdcEndPointId& endPointId)
-        {
-            memcpy(&endPointId, msgBuffer + msgHeader::SIZE, sizeof(UdcEndPointId));
+            memcpy(msgBuffer + msgHeader::SIZE, &timeStamp, sizeof(timeStamp));
         }
 
         void deserializeTimeStamp(const uint8_t* msgBuffer, uint32_t& timeStamp)
         {
-            constexpr uint32_t offset =
-                msgHeader::SIZE +
-                sizeof(UdcEndPointId);
-
             timeStamp = htonl(timeStamp);
-            memcpy(&timeStamp, msgBuffer + offset, sizeof(timeStamp));
+            memcpy(&timeStamp, msgBuffer + msgHeader::SIZE, sizeof(timeStamp));
         }
     }
 
