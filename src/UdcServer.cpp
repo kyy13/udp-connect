@@ -56,7 +56,44 @@ UdcEndPointId UdcServerImpl::createUniqueId()
 void UdcServerImpl::addPendingClient(std::shared_ptr<UdcClient> client, std::chrono::milliseconds time)
 {
     client->startConnecting(time);
-    m_pendingClients.push(std::move(client));
+    m_pendingClients.push_back(std::move(client));
+}
+
+void UdcServerImpl::disconnectFromClient(UdcEndPointId endPointId)
+{
+    // First try to remove from client id and address hash maps
+    // if they aren't there, then it could still be in the pending queue
+    {
+        auto it = m_clientsById.find(endPointId);
+
+        if (it != m_clientsById.end())
+        {
+            auto* client = it->second.get();
+
+            // Remove client from clients by address
+            m_clientsByAddress.erase(client->outgoingAddress());
+
+            // Remove client from clients by id
+            m_clientsById.erase(it);
+
+            return;
+        }
+    }
+
+    // Try to remove client from pending
+    for (auto it = m_pendingClients.begin(); it != m_pendingClients.end();)
+    {
+        auto& client = *it;
+
+        if (client->id() == endPointId)
+        {
+            it = m_pendingClients.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 }
 
 void UdcServerImpl::sendUnreliableMessage(UdcEndPointId endPointId, const uint8_t* data, uint32_t size)
@@ -177,7 +214,7 @@ const UdcEvent* UdcServerImpl::updatePendingClients(std::chrono::milliseconds ti
         m_eventBuffer.endPointId = client->id();
 
         // Timed-out, remove pending client from the queue
-        m_pendingClients.pop();
+        m_pendingClients.pop_front();
 
         return &m_eventBuffer;
     }
@@ -260,11 +297,17 @@ const UdcEvent* UdcServerImpl::processConnectionHandshake(const UdcAddressMux& f
         return nullptr;
     }
 
-    // Verify connection
+    // Check that outgoingAddress isn't already connected
+    if (m_clientsByAddress.find(fromAddress) != m_clientsByAddress.cend())
+    {
+        return nullptr;
+    }
+
+    // Complete connection
     client->receiveHandshake(time);
     m_clientsById[endPointId] = m_pendingClients.front();
     m_clientsByAddress.insert(fromAddress, m_pendingClients.front());
-    m_pendingClients.pop();
+    m_pendingClients.pop_front();
 
     m_eventBuffer.eventType = UDC_EVENT_CONNECTION_SUCCESS;
     m_eventBuffer.endPointId = endPointId;

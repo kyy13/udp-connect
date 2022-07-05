@@ -91,7 +91,8 @@ extern "C"
         const char* logFileName);
 
     // Stops and deletes a server
-    void udcDeleteServer(UdcServer* server);
+    void udcDeleteServer(
+        UdcServer* server);
 
     // Try to parse a node and service string into an IP and port number
     bool udcTryParseAddressIPv4(
@@ -132,6 +133,10 @@ extern "C"
         uint32_t timeout,
         UdcEndPointId& endPointId);
 
+    void udcDisconnect(
+        UdcServer* server,
+        UdcEndPointId endPointId);
+
     void udcSendMessage(
         UdcServer* server,
         UdcEndPointId endPointId,
@@ -141,19 +146,33 @@ extern "C"
 
     // Main update loop
     // process events until nullptr is returned
-    const UdcEvent* udcProcessEvents(UdcServer* server);
+    const UdcEvent* udcProcessEvents(
+        UdcServer* server);
 
     // Get the type of event that was returned by udcProcessEvents()
-    UdcEventType udcGetEventType(const UdcEvent* event);
+    UdcEventType udcGetEventType(
+        const UdcEvent* event);
 
     // Get results of a connection event
-    bool udcGetResultConnectionEvent(const UdcEvent* event, UdcEndPointId& endPointId);
+    bool udcGetResultConnectionEvent(
+        const UdcEvent* event,
+        UdcEndPointId& endPointId);
 
     // Get results of an external message event
-    bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcAddressIPv4& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize);
+    bool udcGetResultExternalIPv4Event(
+        const UdcEvent* event,
+        UdcAddressIPv4& address,
+        uint16_t& port,
+        uint32_t& msgIndex,
+        uint32_t& msgSize);
 
     // Get results of an external message event
-    bool udcGetResultExternalIPv6Event(const UdcEvent* event, UdcAddressIPv6& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize);
+    bool udcGetResultExternalIPv6Event(
+        const UdcEvent* event,
+        UdcAddressIPv6& address,
+        uint16_t& port,
+        uint32_t& msgIndex,
+        uint32_t& msgSize);
 }
 
 #endif

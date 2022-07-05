@@ -163,6 +163,12 @@ bool udcTryConnectIPv6(
     return true;
 }
 
+void udcDisconnect(UdcServer* server, UdcEndPointId endPointId)
+{
+    auto* serverImpl = reinterpret_cast<UdcServerImpl*>(server);
+    serverImpl->disconnectFromClient(endPointId);
+}
+
 const UdcEvent* udcProcessEvents(UdcServer* server)
 {
     const auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(

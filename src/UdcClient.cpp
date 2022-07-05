@@ -52,7 +52,6 @@ void UdcClient::startConnecting(std::chrono::milliseconds time)
 {
     m_firstConnectAttemptTime = time;
     m_prevConnectAttemptTime = std::chrono::milliseconds(0);
-    // TODO send start connecting right away and set prev = time
 }
 
 void UdcClient::retryConnecting(std::chrono::milliseconds time)

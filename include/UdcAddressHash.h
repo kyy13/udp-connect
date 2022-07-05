@@ -25,6 +25,11 @@ public:
         m_map[address] = std::forward<U>(val);
     }
 
+    void erase(const UdcAddressMux& address)
+    {
+        m_map.erase(address);
+    }
+
     typename Map::const_iterator find(const UdcAddressMux& address) const
     {
         return m_map.find(address);

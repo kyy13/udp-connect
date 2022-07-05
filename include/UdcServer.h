@@ -16,7 +16,7 @@
 #include <vector>
 #include <unordered_map>
 #include <chrono>
-#include <queue>
+#include <deque>
 
 class UdcServerImpl
 {
@@ -30,6 +30,8 @@ public:
     UdcEndPointId createUniqueId();
 
     void addPendingClient(std::shared_ptr<UdcClient> client, std::chrono::milliseconds time);
+
+    void disconnectFromClient(UdcEndPointId endPointId);
 
     void sendUnreliableMessage(UdcEndPointId endPointId, const uint8_t* data, uint32_t size);
 
@@ -53,7 +55,7 @@ protected:
     UdcEvent m_eventBuffer;
 
     // Maps temporary device ID to clients pending connection
-    std::queue<std::shared_ptr<UdcClient>> m_pendingClients;
+    std::deque<std::shared_ptr<UdcClient>> m_pendingClients;
 
     // Maps device ID to connected clients
     std::unordered_map<UdcEndPointId, std::shared_ptr<UdcClient>> m_clientsById;
