@@ -137,7 +137,10 @@ extern "C"
         UdcServer* server,
         UdcEndPointId endPointId);
 
-    void udcSendMessage(
+    // Send a message
+    // returns false if the provided buffer is too small
+    // or if the endPointId doesn't exist
+    bool udcSendMessage(
         UdcServer* server,
         UdcEndPointId endPointId,
         const uint8_t* data,

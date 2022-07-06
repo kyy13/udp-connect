@@ -7,10 +7,12 @@
 #include "udp_connect.h"
 #include "UdcTypes.h"
 #include "UdcSocketMux.h"
+#include "UdcMessage.h"
 
 #include <cstdint>
-#include <string>
+#include <vector>
 #include <chrono>
+#include <queue>
 
 class UdcClient
 {
@@ -24,6 +26,17 @@ public:
     // Get client id
     [[nodiscard]]
     UdcEndPointId id() const;
+
+    // The current reliable message ID to send
+    [[nodiscard]]
+    UdcMessageId reliableMsgId() const;
+
+    // Sets the current reliable message ID
+    void setReliableMsgId(UdcMessageId id);
+
+    // The reliable message queue for this client
+    [[nodiscard]]
+    std::queue<std::vector<uint8_t>>& reliableMessages();
 
     // Returns true if the client is connected
     [[nodiscard]]
@@ -75,6 +88,12 @@ public:
 
 protected:
     UdcEndPointId m_id;
+
+    // The reliable message id
+    UdcMessageId m_reliableMsgId;
+
+    // The reliable message queue for this client
+    std::queue<std::vector<uint8_t>> m_reliableMessages;
 
     // True when first connected,
     // false if UDC_EVENT_CONNECTION_LOST

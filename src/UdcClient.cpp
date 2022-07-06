@@ -9,6 +9,7 @@ UdcClient::UdcClient(
     std::chrono::milliseconds pingPeriod,
     std::chrono::milliseconds timeoutPeriod)
     : m_id(endPointId)
+    , m_reliableMsgId(UDC_MSG_RELIABLE_ANY)
     , m_isConnected(false)
     , m_outgoingAddress(outgoingAddress)
     , m_incomingAddress({})
@@ -26,6 +27,21 @@ UdcClient::UdcClient(
 UdcEndPointId UdcClient::id() const
 {
     return m_id;
+}
+
+UdcMessageId UdcClient::reliableMsgId() const
+{
+    return m_reliableMsgId;
+}
+
+void UdcClient::setReliableMsgId(UdcMessageId id)
+{
+    m_reliableMsgId = id;
+}
+
+std::queue<std::string>& UdcClient::reliableMessages()
+{
+    return m_reliableMessages;
 }
 
 bool UdcClient::connected() const
@@ -101,6 +117,11 @@ bool UdcClient::needsConnectionLostEvent(std::chrono::milliseconds time) const
 
 void UdcClient::receiveHandshake(std::chrono::milliseconds receivedTime)
 {
-    m_isConnected = true;
+    if (!m_isConnected)
+    {
+        m_reliableMsgId = UDC_MSG_RELIABLE_ANY;
+        m_isConnected = true;
+    }
+
     m_lastReceivedTime = receivedTime;
 }

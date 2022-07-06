@@ -96,23 +96,46 @@ void UdcServerImpl::disconnectFromClient(UdcEndPointId endPointId)
     }
 }
 
-void UdcServerImpl::sendUnreliableMessage(UdcEndPointId endPointId, const uint8_t* data, uint32_t size)
+bool UdcServerImpl::sendUnreliableMessage(UdcEndPointId endPointId, const uint8_t* data, uint32_t size)
 {
+    if (size + serial::msgUnreliable::SIZE > m_messageBufferSize)
+    {
+        return false;
+    }
+
     UdcClient* client;
     if (!tryGetClient(endPointId, &client))
     {
-        return;
+        return false;
     }
 
     if (!client->connected())
     {
-        return;
+        return true;
     }
 
     serial::msgHeader::serializeMsgId(m_messageBuffer, UDC_MSG_UNRELIABLE);
     serial::msgUnreliable::serializeData(m_messageBuffer, data, size);
 
     m_socket.send(client->outgoingAddress(), m_messageBuffer, serial::msgHeader::SIZE + size);
+    return true;
+}
+
+bool UdcServerImpl::sendReliableMessage(UdcEndPointId endPointId, const uint8_t* data, uint32_t size)
+{
+    if (size + serial::msgReliable::SIZE > m_messageBufferSize)
+    {
+        return false;
+    }
+
+    UdcClient* client;
+    if (!tryGetClient(endPointId, &client))
+    {
+        return false;
+    }
+
+    client->reliableMessages().push(std::vector<uint8_t>(data, data + size));
+    return true;
 }
 
 const UdcEvent* UdcServerImpl::receiveMessages(std::chrono::milliseconds time)
@@ -179,9 +202,20 @@ const UdcEvent* UdcServerImpl::receiveMessages(std::chrono::milliseconds time)
                 }
                 break;
             case UDC_MSG_UNRELIABLE:
-                if (msgSize > serial::msgHeader::SIZE)
+                if (msgSize >= serial::msgHeader::SIZE)
                 {
                     auto event = processUnreliable(address, msgSize);
+
+                    if (event != nullptr)
+                    {
+                        return event;
+                    }
+                }
+                break;
+            case UDC_MSG_RELIABLE_ANY:
+                if (msgSize >= serial::msgHeader::SIZE)
+                {
+                    auto event = processReliableAny(address, msgSize);
 
                     if (event != nullptr)
                     {
@@ -372,7 +406,13 @@ const UdcEvent* UdcServerImpl::processUnreliable(const UdcAddressMux& fromAddres
     m_eventBuffer.port = fromAddress.port;
     m_eventBuffer.msgIndex = serial::msgHeader::SIZE;
     m_eventBuffer.msgSize = msgSize - serial::msgHeader::SIZE;
+
     return &m_eventBuffer;
+}
+
+const UdcEvent* UdcServerImpl::processReliableAny(const UdcAddressMux& fromAddress, uint32_t msgSize)
+{
+
 }
 
 bool UdcServerImpl::tryGetClient(UdcEndPointId clientId, UdcClient** client)

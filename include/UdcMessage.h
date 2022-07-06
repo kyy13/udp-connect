@@ -16,10 +16,10 @@ enum UdcMessageId : uint8_t
     UDC_MSG_PING,
     UDC_MSG_PONG,
     UDC_MSG_UNRELIABLE,
-    UDC_MSG_RELIABLE_RESET,
+    UDC_MSG_RELIABLE_ANY,
     UDC_MSG_RELIABLE_0,
     UDC_MSG_RELIABLE_1,
-    UDC_MSG_RELIABLE_HANDSHAKE_RESET,
+    UDC_MSG_RELIABLE_HANDSHAKE_ANY,
     UDC_MSG_RELIABLE_HANDSHAKE_0,
     UDC_MSG_RELIABLE_HANDSHAKE_1,
 };
@@ -90,14 +90,9 @@ namespace serial
         // Size of minimum deserialized message in bytes
         constexpr uint32_t SIZE =
             msgHeader::SIZE +
-            sizeof(UdcEndPointId) +
             sizeof(uint32_t);
 
-        void serializeEndPointId(uint8_t* msgBuffer, UdcEndPointId endPointId);
-
         void serializeTimeStamp(uint8_t* msgBuffer, uint32_t timeStamp);
-
-        void deserializeEndPointId(const uint8_t* msgBuffer, UdcEndPointId& endPointId);
 
         void deserializeTimeStamp(const uint8_t* msgBuffer, uint32_t& timeStamp);
 

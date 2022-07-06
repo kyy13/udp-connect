@@ -201,7 +201,7 @@ UdcEventType udcGetEventType(const UdcEvent* event)
     return event->eventType;
 }
 
-void udcSendMessage(
+bool udcSendMessage(
     UdcServer* server,
     UdcEndPointId endPointId,
     const uint8_t* data,
@@ -209,7 +209,10 @@ void udcSendMessage(
     UdcReliability reliability)
 {
     auto* serverImpl = reinterpret_cast<UdcServerImpl*>(server);
-    serverImpl->sendUnreliableMessage(endPointId, data, size);
+
+    return (reliability == UDC_UNRELIABLE_PACKET)
+        ? serverImpl->sendUnreliableMessage(endPointId, data, size)
+        : serverImpl->sendReliableMessage(endPointId, data, size);
 }
 
 bool udcGetResultConnectionEvent(const UdcEvent* event, UdcEndPointId& endPointId)

@@ -13,8 +13,6 @@
 #include "UdcEvent.h"
 
 #include <memory>
-#include <vector>
-#include <unordered_map>
 #include <chrono>
 #include <deque>
 
@@ -33,7 +31,11 @@ public:
 
     void disconnectFromClient(UdcEndPointId endPointId);
 
-    void sendUnreliableMessage(UdcEndPointId endPointId, const uint8_t* data, uint32_t size);
+    [[nodiscard]]
+    bool sendUnreliableMessage(UdcEndPointId endPointId, const uint8_t* data, uint32_t size);
+
+    [[nodiscard]]
+    bool sendReliableMessage(UdcEndPointId endPointId, const uint8_t* data, uint32_t size);
 
     [[nodiscard]]
     const UdcEvent* receiveMessages(std::chrono::milliseconds time);
@@ -79,6 +81,9 @@ protected:
 
     [[nodiscard]]
     const UdcEvent* processUnreliable(const UdcAddressMux& fromAddress, uint32_t msgSize);
+
+    [[nodiscard]]
+    const UdcEvent* processReliableAny(const UdcAddressMux& fromAddress, uint32_t msgSize);
 
     [[nodiscard]]
     bool tryGetClient(UdcEndPointId clientId, UdcClient** client);

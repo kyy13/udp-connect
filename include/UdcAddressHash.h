@@ -14,8 +14,8 @@ class UdcAddressMap
 {
 protected:
     struct Hasher;
-    struct Comparator;
-    using Map = std::unordered_map<UdcAddressMux, T, Hasher, Comparator>;
+    struct CompareEquals;
+    using Map = std::unordered_map<UdcAddressMux, T, Hasher, CompareEquals>;
 public:
 
     template<class U>
@@ -50,7 +50,7 @@ protected:
         }
     };
 
-    struct Comparator
+    struct CompareEquals
     {
         bool operator()(const UdcAddressMux& a, const UdcAddressMux& b) const
         {
