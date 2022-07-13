@@ -19,7 +19,7 @@ details
 2. `CMake` version 3.7 or higher
 
 #### Steps
-1. Clone the repository with `git clone --recurse-submodules https://github.com/kyy13/pod-index`
+1. Clone the repository with `git clone https://github.com/kyy13/udp-connect`
 2. Run `cmake` with `DCMAKE_BUILD_TYPE=Release` to generate the build files
 3. Run `make` to build
 
