@@ -68,7 +68,7 @@ int main()
         // Send from A to B once connected
         if (connected && sentMessage < totalMessages)
         {
-            udcSendMessage(nodeA, id, reinterpret_cast<uint8_t*>(&sentMessage), sizeof(sentMessage), UDC_RELIABLE_PACKET);
+            udcSendMessage(nodeA, id, reinterpret_cast<uint8_t*>(&sentMessage), sizeof(sentMessage), UDC_RELIABLE_MESSAGE);
             ++sentMessage;
         }
 

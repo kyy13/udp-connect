@@ -65,7 +65,7 @@ int main()
         // Send from A to B once connected
         if (connected)
         {
-            udcSendMessage(nodeA, id, message.data(), message.size(), UDC_UNRELIABLE_PACKET);
+            udcSendMessage(nodeA, id, message.data(), message.size(), UDC_UNRELIABLE_MESSAGE);
         }
 
         // Receive from nodeA

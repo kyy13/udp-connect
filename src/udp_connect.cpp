@@ -11,6 +11,11 @@
 #include <cassert>
 #include <cmath>
 
+uint32_t udcGetMinimumBufferSize()
+{
+    return serial::msgHeader::SIZE + sizeof(uint32_t);
+}
+
 UdcServer* udcCreateServer(
     UdcSignature signature,
     uint16_t portIPv6,
@@ -19,6 +24,11 @@ UdcServer* udcCreateServer(
     uint32_t size,
     const char* logFileName)
 {
+    if (size < udcGetMinimumBufferSize())
+    {
+        return nullptr;
+    }
+
     UdcServerImpl* server;
 
     try
@@ -206,11 +216,16 @@ bool udcSendMessage(
     UdcEndPointId endPointId,
     const uint8_t* data,
     uint32_t size,
-    UdcReliability reliability)
+    UdcMessageType reliability)
 {
+    if (size < udcGetMinimumBufferSize())
+    {
+        return false;
+    }
+
     auto* serverImpl = reinterpret_cast<UdcServerImpl*>(server);
 
-    return (reliability == UDC_UNRELIABLE_PACKET)
+    return (reliability == UDC_UNRELIABLE_MESSAGE)
         ? serverImpl->sendUnreliableMessage(endPointId, data, size)
         : serverImpl->sendReliableMessage(endPointId, data, size);
 }
