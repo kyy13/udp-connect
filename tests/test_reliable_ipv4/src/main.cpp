@@ -102,7 +102,7 @@ int main()
                     uint32_t index;
                     uint32_t size;
 
-                    if (!udcGetResultExternalIPv4Event(event, ip, port, index, size))
+                    if (!udcGetResultMessageIPv4Event(event, ip, port, index, size))
                     {
                         std::cout << "couldn't read external ipv4 event\n";
                         udcDeleteServer(nodeA);

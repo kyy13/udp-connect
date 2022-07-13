@@ -236,7 +236,7 @@ bool udcGetResultConnectionEvent(const UdcEvent* event, UdcEndPointId& endPointI
     return true;
 }
 
-bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcAddressIPv4& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize)
+bool udcGetResultMessageIPv4Event(const UdcEvent* event, UdcAddressIPv4& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize)
 {
     if (event->eventType != UDC_EVENT_RECEIVE_MESSAGE_IPV4)
     {
@@ -251,7 +251,7 @@ bool udcGetResultExternalIPv4Event(const UdcEvent* event, UdcAddressIPv4& addres
     return true;
 }
 
-bool udcGetResultExternalIPv6Event(const UdcEvent* event, UdcAddressIPv6& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize)
+bool udcGetResultMessageIPv6Event(const UdcEvent* event, UdcAddressIPv6& address, uint16_t& port, uint32_t& msgIndex, uint32_t& msgSize)
 {
     if (event->eventType != UDC_EVENT_RECEIVE_MESSAGE_IPV6)
     {

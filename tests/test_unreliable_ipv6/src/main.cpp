@@ -98,7 +98,7 @@ int main()
                     uint32_t index;
                     uint32_t size;
 
-                    if (!udcGetResultExternalIPv6Event(event, ip, port, index, size))
+                    if (!udcGetResultMessageIPv6Event(event, ip, port, index, size))
                     {
                         std::cout << "couldn't read external ipv6 event\n";
                         udcDeleteServer(nodeA);

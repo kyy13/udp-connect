@@ -183,23 +183,23 @@ extern "C"
         const UdcEvent*        event,        // The event
         UdcEndPointId&         endPointId);  // The correlating endpoint
 
-    // Get results of an external message event (IPv4)
+    // Get results of a message received event (IPv4)
     // UDC_EVENT_RECEIVE_MESSAGE_IPV4
-    bool            __cdecl udcGetResultExternalIPv4Event(
-        const UdcEvent*        event,
-        UdcAddressIPv4&        address,
-        uint16_t&              port,
-        uint32_t&              msgIndex,
-        uint32_t&              msgSize);
+    bool            __cdecl udcGetResultMessageIPv4Event(
+        const UdcEvent*        event,        // The event
+        UdcAddressIPv4&        address,      // The IPv4 address of the sender
+        uint16_t&              port,         // The port of the sender
+        uint32_t&              msgIndex,     // The first byte of the message in the message buffer
+        uint32_t&              msgSize);     // The size in bytes of the message in the message buffer
 
-    // Get results of an external message event (IPv6)
+    // Get results of a message received event (IPv6)
     // UDC_EVENT_RECEIVE_MESSAGE_IPV6
-    bool            __cdecl udcGetResultExternalIPv6Event(
-        const UdcEvent*        event,
-        UdcAddressIPv6&        address,
-        uint16_t&              port,
-        uint32_t&              msgIndex,
-        uint32_t&              msgSize);
+    bool            __cdecl udcGetResultMessageIPv6Event(
+        const UdcEvent*        event,        // The event
+        UdcAddressIPv6&        address,      // The IPv6 address of the sender
+        uint16_t&              port,         // The port of the sender
+        uint32_t&              msgIndex,     // The first byte of the message in the message buffer
+        uint32_t&              msgSize);     // The size in bytes of the message in the message buffer
 }
 
 #endif
