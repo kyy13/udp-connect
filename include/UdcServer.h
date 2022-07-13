@@ -65,6 +65,9 @@ protected:
     // Maps address to connected clients
     UdcAddressMap<std::shared_ptr<UdcClient>> m_clientsByAddress;
 
+    // Maps address to client reliable states
+    UdcAddressMap<int> m_reliableStates;
+
     // Message Buffer
     uint8_t* m_messageBuffer;
     uint32_t m_messageBufferSize;
@@ -83,7 +86,10 @@ protected:
     const UdcEvent* processUnreliable(const UdcAddressMux& fromAddress, uint32_t msgSize);
 
     [[nodiscard]]
-    const UdcEvent* processReliableAny(const UdcAddressMux& fromAddress, uint32_t msgSize);
+    const UdcEvent* processReliableMessage(int state, const UdcAddressMux& fromAddress, uint32_t size);
+
+    [[nodiscard]]
+    const UdcEvent* processReliableHandshake(int state, const UdcAddressMux& fromAddress, std::chrono::milliseconds time);
 
     [[nodiscard]]
     bool tryGetClient(UdcEndPointId clientId, UdcClient** client);

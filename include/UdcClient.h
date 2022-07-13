@@ -29,10 +29,10 @@ public:
 
     // The current reliable message ID to send
     [[nodiscard]]
-    UdcMessageId reliableMsgId() const;
+    int reliableState() const;
 
     // Sets the current reliable message ID
-    void setReliableMsgId(UdcMessageId id);
+    void setReliableState(int state);
 
     // The reliable message queue for this client
     [[nodiscard]]
@@ -73,7 +73,7 @@ public:
     bool receivePong(std::chrono::milliseconds pingSentTime, std::chrono::milliseconds pongReceivedTime);
 
     // Receive a handshake
-    void receiveHandshake(std::chrono::milliseconds receivedTime);
+    void receiveConnectionHandshake(std::chrono::milliseconds receivedTime);
 
     // Client needs a ping
     // It has been longer than pingPeriod since the last time
@@ -86,11 +86,27 @@ public:
     [[nodiscard]]
     bool needsConnectionLostEvent(std::chrono::milliseconds time) const;
 
+    // Set client ping (ms) after receiving a valid reliable handshake
+    // refreshes last received timer
+    // returns true if connection has been regained
+    [[nodiscard]]
+    bool receiveReliableHandshake(std::chrono::milliseconds reliableSentTime, std::chrono::milliseconds handshakeReceivedTime);
+
+    // start the reliable timeout timer if it's the first attempt
+    void setSendReliable(std::chrono::milliseconds time);
+
+    // reset the reliable timeout timer
+    void resetSendReliable();
+
+    // true if the client needs its reliable state reset after timeout
+    [[nodiscard]]
+    bool needsReliableReset(std::chrono::milliseconds time) const;
+
 protected:
     UdcEndPointId m_id;
 
     // The reliable message id
-    UdcMessageId m_reliableMsgId;
+    int m_reliableState;
 
     // The reliable message queue for this client
     std::queue<std::vector<uint8_t>> m_reliableMessages;
@@ -104,13 +120,19 @@ protected:
     UdcAddressMux m_incomingAddress; // The address that this server gets back
 
     std::chrono::milliseconds m_pingPeriod; // how often ping is queried
-    std::chrono::milliseconds m_connectionTimeoutPeriod; // how long before a connection times out
-    std::chrono::milliseconds m_connectionLostPeriod; // how long before a connection times out
+    std::chrono::milliseconds m_connectionTimeoutPeriod; // how long before a connection times out (while connecting)
+    std::chrono::milliseconds m_connectionLostPeriod; // how long before a connection times out (while connected)
     std::chrono::milliseconds m_connectionAttemptPeriod; // how long between connection attempts
+    std::chrono::milliseconds m_reliableTimeoutPeriod; // timeout for reliable handshake before resetting client state
 
     std::chrono::milliseconds m_ping; // the last retrieved ping value
     std::chrono::milliseconds m_pingLastSetTime; // last time a ping was sent
     std::chrono::milliseconds m_lastReceivedTime; // time since last message received
+
+    // if the server is awaiting a reliable message handshake, then this is
+    // the time at which the reliable message was first sent.
+    // otherwise, this value is {0}.
+    std::chrono::milliseconds m_reliableSentTime;
 
     std::chrono::milliseconds m_firstConnectAttemptTime;
     std::chrono::milliseconds m_prevConnectAttemptTime;

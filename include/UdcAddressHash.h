@@ -30,14 +30,24 @@ public:
         m_map.erase(address);
     }
 
+    typename Map::iterator find(const UdcAddressMux& address)
+    {
+        return m_map.find(address);
+    }
+
     typename Map::const_iterator find(const UdcAddressMux& address) const
     {
         return m_map.find(address);
     }
 
-    typename Map::const_iterator cend() const
+    typename Map::iterator end()
     {
         return m_map.end();
+    }
+
+    typename Map::const_iterator cend() const
+    {
+        return m_map.cend();
     }
 
 protected:

@@ -9,7 +9,7 @@ UdcClient::UdcClient(
     std::chrono::milliseconds pingPeriod,
     std::chrono::milliseconds timeoutPeriod)
     : m_id(endPointId)
-    , m_reliableMsgId(UDC_MSG_RELIABLE_ANY)
+    , m_reliableState(0)
     , m_isConnected(false)
     , m_outgoingAddress(outgoingAddress)
     , m_incomingAddress({})
@@ -17,9 +17,11 @@ UdcClient::UdcClient(
     , m_connectionTimeoutPeriod(timeoutPeriod)
     , m_connectionLostPeriod(timeoutPeriod)
     , m_connectionAttemptPeriod(pingPeriod)
+    , m_reliableTimeoutPeriod(timeoutPeriod)
     , m_ping(0)
     , m_pingLastSetTime(0)
     , m_lastReceivedTime(0)
+    , m_reliableSentTime(0)
     , m_firstConnectAttemptTime(0)
     , m_prevConnectAttemptTime(0)
 {}
@@ -29,17 +31,17 @@ UdcEndPointId UdcClient::id() const
     return m_id;
 }
 
-UdcMessageId UdcClient::reliableMsgId() const
+int UdcClient::reliableState() const
 {
-    return m_reliableMsgId;
+    return m_reliableState;
 }
 
-void UdcClient::setReliableMsgId(UdcMessageId id)
+void UdcClient::setReliableState(int state)
 {
-    m_reliableMsgId = id;
+    m_reliableState = state;
 }
 
-std::queue<std::string>& UdcClient::reliableMessages()
+std::queue<std::vector<uint8_t>>& UdcClient::reliableMessages()
 {
     return m_reliableMessages;
 }
@@ -105,6 +107,37 @@ bool UdcClient::receivePong(std::chrono::milliseconds pingSentTime, std::chrono:
     return false;
 }
 
+bool UdcClient::receiveReliableHandshake(std::chrono::milliseconds reliableSentTime, std::chrono::milliseconds handshakeReceivedTime)
+{
+    // Allow reliable message handshake timestamp to act like ping/pong
+    // there's no reason to send excessive pings if reliable traffic is high
+    // and this can regain a connection as well
+    return receivePong(reliableSentTime, handshakeReceivedTime);
+}
+
+void UdcClient::resetSendReliable()
+{
+    m_reliableSentTime = std::chrono::milliseconds(0);
+}
+
+void UdcClient::setSendReliable(std::chrono::milliseconds time)
+{
+    if (m_reliableSentTime == std::chrono::milliseconds(0))
+    {
+        m_reliableSentTime = time;
+    }
+}
+
+bool UdcClient::needsReliableReset(std::chrono::milliseconds time) const
+{
+    if (m_reliableSentTime == std::chrono::milliseconds(0))
+    {
+        return false;
+    }
+
+    return (time - m_reliableSentTime >= m_reliableTimeoutPeriod);
+}
+
 bool UdcClient::needsPing(std::chrono::milliseconds time) const
 {
     return (time - m_pingLastSetTime) >= m_pingPeriod;
@@ -115,11 +148,10 @@ bool UdcClient::needsConnectionLostEvent(std::chrono::milliseconds time) const
     return m_isConnected && ((time - m_lastReceivedTime) >= m_connectionLostPeriod);
 }
 
-void UdcClient::receiveHandshake(std::chrono::milliseconds receivedTime)
+void UdcClient::receiveConnectionHandshake(std::chrono::milliseconds receivedTime)
 {
     if (!m_isConnected)
     {
-        m_reliableMsgId = UDC_MSG_RELIABLE_ANY;
         m_isConnected = true;
     }
 

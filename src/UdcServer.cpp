@@ -212,10 +212,65 @@ const UdcEvent* UdcServerImpl::receiveMessages(std::chrono::milliseconds time)
                     }
                 }
                 break;
-            case UDC_MSG_RELIABLE_ANY:
-                if (msgSize >= serial::msgHeader::SIZE)
+            case UDC_MSG_RELIABLE_RESET:
+                if (msgSize == serial::msgReliable::SIZE)
                 {
-                    auto event = processReliableAny(address, msgSize);
+                    auto event = processReliableMessage(-1, address, msgSize);
+
+                    if (event != nullptr)
+                    {
+                        return event;
+                    }
+                }
+                break;
+            case UDC_MSG_RELIABLE_0:
+                if (msgSize >= serial::msgReliable::SIZE)
+                {
+                    auto event = processReliableMessage(0, address, msgSize);
+
+                    if (event != nullptr)
+                    {
+                        return event;
+                    }
+                }
+                break;
+            case UDC_MSG_RELIABLE_1:
+                if (msgSize >= serial::msgReliable::SIZE)
+                {
+                    auto event = processReliableMessage(1, address, msgSize);
+
+                    if (event != nullptr)
+                    {
+                        return event;
+                    }
+                }
+                break;
+            case UDC_MSG_RELIABLE_HANDSHAKE_RESET:
+                if (msgSize == serial::msgReliable::SIZE)
+                {
+                    auto event = processReliableHandshake(-1, address, time);
+
+                    if (event != nullptr)
+                    {
+                        return event;
+                    }
+                }
+                break;
+            case UDC_MSG_RELIABLE_HANDSHAKE_0:
+                if (msgSize == serial::msgReliable::SIZE)
+                {
+                    auto event = processReliableHandshake(0, address, time);
+
+                    if (event != nullptr)
+                    {
+                        return event;
+                    }
+                }
+                break;
+            case UDC_MSG_RELIABLE_HANDSHAKE_1:
+                if (msgSize == serial::msgReliable::SIZE)
+                {
+                    auto event = processReliableHandshake(1, address, time);
 
                     if (event != nullptr)
                     {
@@ -275,6 +330,46 @@ const UdcEvent* UdcServerImpl::updateClientConnectionStatus(std::chrono::millise
     for (auto& pair : m_clientsById)
     {
         auto* client = pair.second.get();
+
+        // Send reliable messages
+        if (!client->reliableMessages().empty())
+        {
+            int reliableState = client->reliableState();
+
+            if (reliableState == -1)
+            {
+                assert(m_messageBufferSize >= serial::msgReliable::SIZE);
+
+                serial::msgHeader::serializeMsgId(m_messageBuffer, UDC_MSG_RELIABLE_RESET);
+                serial::msgReliable::serializeTimeStamp(m_messageBuffer, time.count());
+
+                m_socket.send(client->outgoingAddress(), m_messageBuffer, serial::msgReliable::SIZE);
+            }
+            else
+            {
+                if (client->needsReliableReset(time))
+                {
+                    client->setReliableState(-1);
+                    client->resetSendReliable();
+                }
+                else
+                {
+                    auto& msg = client->reliableMessages().front();
+
+                    assert(m_messageBufferSize >= serial::msgReliable::SIZE + msg.size());
+
+                    serial::msgHeader::serializeMsgId(m_messageBuffer, (reliableState == 0)
+                        ? UDC_MSG_RELIABLE_0
+                        : UDC_MSG_RELIABLE_1);
+                    serial::msgReliable::serializeTimeStamp(m_messageBuffer, time.count());
+                    serial::msgReliable::serializeData(m_messageBuffer, msg.data(), msg.size());
+
+                    m_socket.send(client->outgoingAddress(), m_messageBuffer, serial::msgReliable::SIZE + msg.size());
+
+                    client->setSendReliable(time);
+                }
+            }
+        }
 
         // Send PING
         if (client->needsPing(time))
@@ -338,7 +433,7 @@ const UdcEvent* UdcServerImpl::processConnectionHandshake(const UdcAddressMux& f
     }
 
     // Complete connection
-    client->receiveHandshake(time);
+    client->receiveConnectionHandshake(time);
     m_clientsById[endPointId] = m_pendingClients.front();
     m_clientsByAddress.insert(fromAddress, m_pendingClients.front());
     m_pendingClients.pop_front();
@@ -360,7 +455,7 @@ void UdcServerImpl::processPing(const UdcAddressMux& fromAddress)
 
 const UdcEvent* UdcServerImpl::processPong(const UdcAddressMux& fromAddress, std::chrono::milliseconds time)
 {
-    // Check if fromAddress belong to a client
+    // Check if fromAddress belongs to a client
     UdcClient* client;
     if (!tryGetClient(fromAddress, &client))
     {
@@ -390,6 +485,115 @@ const UdcEvent* UdcServerImpl::processPong(const UdcAddressMux& fromAddress, std
     return &m_eventBuffer;
 }
 
+const UdcEvent* UdcServerImpl::processReliableMessage(int state, const UdcAddressMux& fromAddress, uint32_t msgSize)
+{
+    auto it = m_reliableStates.find(fromAddress);
+
+    if (state == -1)
+    {
+        // reset reliable state for address
+        if (it != m_reliableStates.end())
+        {
+            it->second = 0;
+        }
+
+        // send handshake
+        serial::msgHeader::serializeMsgId(m_messageBuffer, UDC_MSG_RELIABLE_HANDSHAKE_RESET);
+        m_socket.send(fromAddress, m_messageBuffer, serial::msgReliable::SIZE);
+
+        return nullptr;
+    }
+
+    bool notInHash = (it == m_reliableStates.end());
+    bool process = (notInHash || it->second == state);
+
+    // move to next state
+    if (notInHash)
+    {
+        m_reliableStates.insert(fromAddress, (state == 0) ? 1 : 0);
+    }
+    else
+    {
+        it->second = (state == 0) ? 1 : 0;
+    }
+
+    // send handshake
+    serial::msgHeader::serializeMsgId(m_messageBuffer, (state == 0) ? UDC_MSG_RELIABLE_HANDSHAKE_0 : UDC_MSG_RELIABLE_HANDSHAKE_1);
+    m_socket.send(fromAddress, m_messageBuffer, serial::msgReliable::SIZE);
+
+    // process message
+    if (process)
+    {
+        if (fromAddress.family == UDC_IPV4)
+        {
+            m_eventBuffer.eventType = UDC_EVENT_RECEIVE_MESSAGE_IPV4;
+            m_eventBuffer.addressIPv4 = fromAddress.address.ipv4;
+        }
+        else
+        {
+            m_eventBuffer.eventType = UDC_EVENT_RECEIVE_MESSAGE_IPV6;
+            m_eventBuffer.addressIPv6 = fromAddress.address.ipv6;
+        }
+
+        m_eventBuffer.port = fromAddress.port;
+        m_eventBuffer.msgIndex = serial::msgReliable::SIZE;
+        m_eventBuffer.msgSize = msgSize - serial::msgReliable::SIZE;
+
+        return &m_eventBuffer;
+    }
+
+    return nullptr;
+}
+
+const UdcEvent* UdcServerImpl::processReliableHandshake(int state, const UdcAddressMux& fromAddress, std::chrono::milliseconds time)
+{
+    // Check if fromAddress belongs to a client
+    UdcClient* client;
+    if (!tryGetClient(fromAddress, &client))
+    {
+        return nullptr;
+    }
+
+    // Get timestamp
+    uint32_t timeStamp;
+    serial::msgReliable::deserializeTimeStamp(m_messageBuffer, timeStamp);
+    auto timeStampMs = std::chrono::milliseconds(timeStamp);
+
+    if (time < timeStampMs)
+    {
+        return nullptr;
+    }
+
+    // Process handshake
+    int reliableState = client->reliableState();
+
+    // handshake must match the server's expectation of client state
+    if (state == reliableState)
+    {
+        if (reliableState != -1 && !client->reliableMessages().empty())
+        {
+            client->reliableMessages().pop();
+        }
+
+        // -1 -> 0 (reset), 0 -> 1, 1 -> 0
+        client->setReliableState((state == 0) ? 1 : 0);
+
+        // acknowledge received, and await sending a new reliable message
+        client->resetSendReliable();
+    }
+
+    // Check for lost connection regained from reliable handshake
+    if (!client->receiveReliableHandshake(timeStampMs, time))
+    {
+        return nullptr;
+    }
+
+    // Connection has been regained
+    m_eventBuffer.eventType = UDC_EVENT_CONNECTION_REGAINED;
+    m_eventBuffer.endPointId = client->id();
+    return &m_eventBuffer;
+}
+
 const UdcEvent* UdcServerImpl::processUnreliable(const UdcAddressMux& fromAddress, uint32_t msgSize)
 {
     if (fromAddress.family == UDC_IPV4)
@@ -408,11 +612,6 @@ const UdcEvent* UdcServerImpl::processUnreliable(const UdcAddressMux& fromAddres
     m_eventBuffer.msgSize = msgSize - serial::msgHeader::SIZE;
 
     return &m_eventBuffer;
-}
-
-const UdcEvent* UdcServerImpl::processReliableAny(const UdcAddressMux& fromAddress, uint32_t msgSize)
-{
-
 }
 
 bool UdcServerImpl::tryGetClient(UdcEndPointId clientId, UdcClient** client)
