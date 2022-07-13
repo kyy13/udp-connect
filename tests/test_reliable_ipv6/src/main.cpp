@@ -9,13 +9,16 @@
 
 int main()
 {
+    constexpr uint32_t totalMessages = 10000;
+
     UdcSignature sig = {{0x01, 0x02, 0x03, 0x04}};
 
-    std::vector<uint8_t> message {'O', 'W', 'O'};
+    uint32_t sentMessage = 0;
+    uint32_t expectedMessage = 0;
     std::vector<uint8_t> buffer(2048);
 
     // Create nodeA
-    UdcServer* nodeA = udcCreateServer(sig, 1234, 2345, buffer.data(), buffer.size(), "test_unreliable_ipv4_logA.txt");
+    UdcServer* nodeA = udcCreateServer(sig, 1234, 2345, buffer.data(), buffer.size(), "test_reliable_ipv6_logA.txt");
 
     if (nodeA == nullptr)
     {
@@ -24,7 +27,7 @@ int main()
     }
 
     // Create nodeB
-    UdcServer* nodeB = udcCreateServer(sig, 1235, 2346, buffer.data(), buffer.size(), "test_unreliable_ipv4_logB.txt");
+    UdcServer* nodeB = udcCreateServer(sig, 1235, 2346, buffer.data(), buffer.size(), "test_reliable_ipv6_logB.txt");
 
     if (nodeB == nullptr)
     {
@@ -35,7 +38,7 @@ int main()
 
     // Connect nodeA to nodeB
     UdcEndPointId id;
-    if (!udcTryConnect(nodeA, "127.0.0.1", "2346", 1000, id))
+    if (!udcTryConnect(nodeA, "::1", "1235", 1000, id))
     {
         std::cout << "failed to initiate connection from A to B\n";
         udcDeleteServer(nodeA);
@@ -63,9 +66,10 @@ int main()
         }
 
         // Send from A to B once connected
-        if (connected)
+        if (connected && sentMessage < totalMessages)
         {
-            udcSendMessage(nodeA, id, message.data(), message.size(), UDC_UNRELIABLE_PACKET);
+            udcSendMessage(nodeA, id, reinterpret_cast<uint8_t*>(&sentMessage), sizeof(sentMessage), UDC_RELIABLE_PACKET);
+            ++sentMessage;
         }
 
         // Receive from nodeA
@@ -91,14 +95,14 @@ int main()
         {
             switch(udcGetEventType(event))
             {
-                case UDC_EVENT_RECEIVE_MESSAGE_IPV4:
+                case UDC_EVENT_RECEIVE_MESSAGE_IPV6:
                 {
-                    UdcAddressIPv4 ip;
+                    UdcAddressIPv6 ip;
                     uint16_t port;
                     uint32_t index;
                     uint32_t size;
 
-                    if (!udcGetResultExternalIPv4Event(event, ip, port, index, size))
+                    if (!udcGetResultExternalIPv6Event(event, ip, port, index, size))
                     {
                         std::cout << "couldn't read external ipv4 event\n";
                         udcDeleteServer(nodeA);
@@ -106,17 +110,21 @@ int main()
                         return -1;
                     }
 
-                    if (memcmp(message.data(), buffer.data() + index, size) != 0)
+                    if (memcmp(&expectedMessage, buffer.data() + index, size) != 0)
                     {
                         std::cout << "message wasn't the same\n";
                         udcDeleteServer(nodeA);
                         udcDeleteServer(nodeB);
                         return -1;
                     }
+                    ++expectedMessage;
 
-                    udcDeleteServer(nodeA);
-                    udcDeleteServer(nodeB);
-                    return 0;
+                    if (expectedMessage >= totalMessages)
+                    {
+                        udcDeleteServer(nodeA);
+                        udcDeleteServer(nodeB);
+                        return 0;
+                    }
                 }
                 default:
                     break;

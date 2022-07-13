@@ -15,7 +15,7 @@ int main()
     std::vector<uint8_t> buffer(2048);
 
     // Create nodeA
-    UdcServer* nodeA = udcCreateServer(sig, 1234, 2345, buffer.data(), buffer.size(), "test_sendrecv_ipv6_logA.txt");
+    UdcServer* nodeA = udcCreateServer(sig, 1234, 2345, buffer.data(), buffer.size(), "test_unreliable_ipv6_logA.txt");
 
     if (nodeA == nullptr)
     {
@@ -24,7 +24,7 @@ int main()
     }
 
     // Create nodeB
-    UdcServer* nodeB = udcCreateServer(sig, 1235, 2346, buffer.data(), buffer.size(), "test_sendrecv_ipv6_logB.txt");
+    UdcServer* nodeB = udcCreateServer(sig, 1235, 2346, buffer.data(), buffer.size(), "test_unreliable_ipv6_logB.txt");
 
     if (nodeB == nullptr)
     {
