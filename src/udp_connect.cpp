@@ -218,11 +218,6 @@ bool udcSendMessage(
     uint32_t size,
     UdcMessageType reliability)
 {
-    if (size < udcGetMinimumBufferSize())
-    {
-        return false;
-    }
-
     auto* serverImpl = reinterpret_cast<UdcServerImpl*>(server);
 
     return (reliability == UDC_UNRELIABLE_MESSAGE)
