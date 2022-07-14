@@ -149,6 +149,13 @@ extern "C"
         UdcEndPointId&         endPointId);  // The returned endpoint ID matched with udcGetResultConnectionEvent
                                              // for monitoring UDC_EVENT_CONNECTION_SUCCESS or UDC_EVENT_CONNECTION_TIMEOUT
 
+    // Returns true for a connected client and sets the ping,
+    // otherwise returns false
+    bool udcGetStatus(
+        UdcServer*             server,       // The local server
+        UdcEndPointId          id,           // The endpoint to check the status of
+        uint32_t&              ping);        // The ping time (ms) of the connection, or 0 if not connected
+
     // Manually disconnect from an endpoint and clear the reliable message queue
     void            __cdecl udcDisconnect(
         UdcServer*             server,

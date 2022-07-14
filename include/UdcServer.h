@@ -27,6 +27,9 @@ public:
     [[nodiscard]]
     UdcEndPointId createUniqueId();
 
+    [[nodiscard]]
+    bool getEndPointStatus(UdcEndPointId id, std::chrono::milliseconds& ping);
+
     void addPendingClient(std::shared_ptr<UdcClient> client, std::chrono::milliseconds time);
 
     void disconnectFromClient(UdcEndPointId endPointId);

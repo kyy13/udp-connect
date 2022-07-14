@@ -173,6 +173,18 @@ bool udcTryConnectIPv6(
     return true;
 }
 
+bool udcGetStatus(UdcServer* server, UdcEndPointId id, uint32_t& ping)
+{
+    auto* serverImpl = reinterpret_cast<UdcServerImpl*>(server);
+
+    std::chrono::milliseconds cping;
+
+    bool result = serverImpl->getEndPointStatus(id, cping);
+    ping = cping.count();
+
+    return result;
+}
+
 void udcDisconnect(UdcServer* server, UdcEndPointId endPointId)
 {
     auto* serverImpl = reinterpret_cast<UdcServerImpl*>(server);

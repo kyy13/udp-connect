@@ -47,6 +47,19 @@ UdcServerImpl::UdcServerImpl(UdcSignature signature, uint16_t portIPv4, uint16_t
     serial::msgHeader::serializeMsgSignature(m_messageBuffer, m_packetSignature);
 }
 
+bool UdcServerImpl::getEndPointStatus(UdcEndPointId id, std::chrono::milliseconds& ping)
+{
+    UdcClient* client;
+
+    if (tryGetClient(id, &client) && client->connected())
+    {
+        ping = client->ping();
+        return true;
+    }
+
+    return false;
+}
+
 UdcEndPointId UdcServerImpl::createUniqueId()
 {
     ++m_idCounter;
