@@ -15,7 +15,7 @@ extern "C"
     struct                  UdcEvent;
 
     // Types of events
-    enum                    UdcEventType : uint32_t
+    enum                    UdcEventType   : uint32_t
     {
         // A connection attempt has succeeded
         // *these events will happen in the order of udcTryConnect() calls
