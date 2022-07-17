@@ -123,7 +123,7 @@ public class UdcServer : IDisposable
         {
             IntPtr evnt = udcProcessEvents(m_server);
 
-            if (evnt == null)
+            if (evnt == IntPtr.Zero)
             {
                 return;
             }
@@ -260,7 +260,7 @@ public class UdcServer : IDisposable
     protected static extern bool udcGetResultConnectionEvent(IntPtr evnt, out UInt32 endPointId);
 
     [DllImport("libudpconnect", EntryPoint = "udcGetResultMessageIPv4Event", CallingConvention = CallingConvention.Cdecl)]
-    protected static extern bool udcGetResultMessageIPv4Event(IntPtr evnt, out  AddressIPv4 address, out UInt16 port, out UInt32 msgIndex, out UInt32 msgSize);
+    protected static extern bool udcGetResultMessageIPv4Event(IntPtr evnt, out AddressIPv4 address, out UInt16 port, out UInt32 msgIndex, out UInt32 msgSize);
 
     [DllImport("libudpconnect", EntryPoint = "udcGetResultMessageIPv6Event", CallingConvention = CallingConvention.Cdecl)]
     protected static extern bool udcGetResultMessageIPv6Event(IntPtr evnt, out AddressIPv6 address, out UInt16 port, out UInt32 msgIndex, out UInt32 msgSize);
