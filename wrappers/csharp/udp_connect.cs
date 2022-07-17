@@ -19,7 +19,7 @@ public class UdcServer : IDisposable
     public event Action<AddressIPv6, UInt16, ArraySegment<byte>> onReceivedMessageIPv6;
 
     // Types of messages
-    public enum UdcMessageType : UInt32
+    public enum MessageType : UInt32
     {
         // Unreliable packets are basic UDP packets
         // there is no guarantee that they arrive
@@ -112,7 +112,7 @@ public class UdcServer : IDisposable
         udcDisconnect(m_server, endPointId);
     }
 
-    public void SendMessage(UInt32 endPointId, byte[] data, UdcMessageType reliability)
+    public void SendMessage(UInt32 endPointId, byte[] data, MessageType reliability)
     {
         udcSendMessage(m_server, endPointId, data, (UInt32)data.Length, reliability);
     }
@@ -248,7 +248,7 @@ public class UdcServer : IDisposable
     protected static extern void udcDisconnect(IntPtr server, UInt32 endPointId);
 
     [DllImport("libudpconnect", EntryPoint = "udcSendMessage", CallingConvention = CallingConvention.Cdecl)]
-    protected static extern void udcSendMessage(IntPtr server, UInt32 endPointId, byte[] data, UInt32 size, UdcMessageType reliability);
+    protected static extern void udcSendMessage(IntPtr server, UInt32 endPointId, byte[] data, UInt32 size, MessageType reliability);
 
     [DllImport("libudpconnect", EntryPoint = "udcProcessEvents", CallingConvention = CallingConvention.Cdecl)]
     protected static extern IntPtr udcProcessEvents(IntPtr server);
