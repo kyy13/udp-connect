@@ -151,7 +151,7 @@ extern "C"
 
     // Returns true for a connected client and sets the ping,
     // otherwise returns false
-    bool udcGetStatus(
+    bool            __cdecl udcGetStatus(
         UdcServer*             server,       // The local server
         UdcEndPointId          id,           // The endpoint to check the status of
         uint32_t&              ping);        // The ping time (ms) of the connection, or 0 if not connected
