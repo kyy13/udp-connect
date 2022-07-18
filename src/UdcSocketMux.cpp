@@ -15,13 +15,18 @@ UdcSocketMux::UdcSocketMux(const std::string& logFileName)
     {}
 }
 
+UdcSocketMux::~UdcSocketMux()
+{
+    disconnect();
+}
+
 bool UdcSocketMux::tryBindIPv4(uint16_t port)
 {
     UdcSocket socket;
 
     if (socket.localBindIPv4(port))
     {
-        m_socketIPv4.push_back(std::move(socket));
+        m_socketIPv4.push_back(socket);
         return true;
     }
 
@@ -34,7 +39,7 @@ bool UdcSocketMux::tryBindIPv6(uint16_t port)
 
     if (socket.localBindIPv6(port))
     {
-        m_socketIPv6.push_back(std::move(socket));
+        m_socketIPv6.push_back(socket);
         return true;
     }
 
@@ -144,7 +149,16 @@ bool UdcSocketMux::receive(UdcAddressIPv6& address, uint16_t& port, uint8_t* buf
 
 void UdcSocketMux::disconnect()
 {
+    for (auto& socket : m_socketIPv4)
+    {
+        socket.disconnect();
+    }
     m_socketIPv4.clear();
+
+    for (auto& socket : m_socketIPv6)
+    {
+        socket.disconnect();
+    }
     m_socketIPv6.clear();
 }
 

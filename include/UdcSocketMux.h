@@ -21,6 +21,8 @@ public:
 
     UdcSocketMux(const std::string& logFileName);
 
+    ~UdcSocketMux();
+
     [[nodiscard]]
     bool tryBindIPv4(uint16_t port);
 
