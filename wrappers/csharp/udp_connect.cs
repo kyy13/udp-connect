@@ -63,9 +63,9 @@ public class UdcServer : IDisposable
     public UdcServer(Signature signature, UInt16 portIPv6, UInt16 portIPv4, uint bufferSize = 2048)
     {
         m_buffer = new byte[bufferSize + udcGetMinimumBufferSize()];
-        m_server = udcCreateServer(signature, portIPv6, portIPv4, m_buffer, (UInt32)m_buffer.Length, null);
+        m_server = udcCreateServer(signature, portIPv6, portIPv4, m_buffer, (UInt32)m_buffer.Length, IntPtr.Zero);
 
-        if (m_server == null)
+        if (m_server == IntPtr.Zero)
         {
             throw new Exception("Failed to start server.");
         }
