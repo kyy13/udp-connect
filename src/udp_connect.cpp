@@ -18,8 +18,6 @@ uint32_t udcGetMinimumBufferSize()
 
 UdcServer* udcCreateServer(
     UdcSignature signature,
-    uint16_t portIPv6,
-    uint16_t portIPv4,
     uint8_t* buffer,
     uint32_t size,
     const char* logFileName)
@@ -34,8 +32,8 @@ UdcServer* udcCreateServer(
     try
     {
         server = (logFileName == nullptr)
-            ? new UdcServerImpl(signature, portIPv4, portIPv6, buffer, size)
-            : new UdcServerImpl(signature, portIPv4, portIPv6, buffer, size, logFileName);
+            ? new UdcServerImpl(signature, buffer, size)
+            : new UdcServerImpl(signature, buffer, size, logFileName);
     }
     catch(...)
     {
@@ -48,6 +46,22 @@ UdcServer* udcCreateServer(
 void udcDeleteServer(UdcServer* server)
 {
     delete reinterpret_cast<UdcServerImpl*>(server);
+}
+
+bool udcTryBindIPv4(
+    UdcServer* server,
+    uint16_t port)
+{
+    auto* serverImpl = reinterpret_cast<UdcServerImpl*>(server);
+    return serverImpl->tryBindIPv4(port);
+}
+
+bool udcTryBindIPv6(
+    UdcServer* server,
+    uint16_t port)
+{
+    auto* serverImpl = reinterpret_cast<UdcServerImpl*>(server);
+    return serverImpl->tryBindIPv6(port);
 }
 
 bool udcTryParseAddressIPv4(

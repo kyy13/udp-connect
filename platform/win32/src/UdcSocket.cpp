@@ -22,6 +22,29 @@ UdcSocket::~UdcSocket()
     WinSock::stopWSA();
 }
 
+UdcSocket::UdcSocket(UdcSocket&& o) noexcept
+    : m_socket(o.m_socket)
+{
+    if (!WinSock::startWSA())
+    {
+        throw std::runtime_error("Could not start Winsock DLL!");
+    }
+
+    o.m_socket = INVALID_SOCKET;
+}
+
+UdcSocket& UdcSocket::operator=(UdcSocket&& o) noexcept
+{
+    if (this != &o)
+    {
+        WinSock::deleteSocket(m_socket);
+        m_socket = o.m_socket;
+        o.m_socket = INVALID_SOCKET;
+    }
+
+    return *this;
+}
+
 bool UdcSocket::isConnected() const
 {
     return m_socket != INVALID_SOCKET;

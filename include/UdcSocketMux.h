@@ -8,6 +8,7 @@
 #include "UdcAddressMux.h"
 #include "UdcPacketLogger.h"
 
+#include <vector>
 #include <memory>
 
 // UdcSocketMux
@@ -20,10 +21,11 @@ public:
 
     UdcSocketMux(const std::string& logFileName);
 
-    // Attempt to bind primaryPort as a dual-stack IPv6 port that's capable of receiving IPv4 and IPv6
-    // If dual-stack is not available, then binds an IPv6 port on primaryPort and an IPv4 port on backupPort
     [[nodiscard]]
-    bool bind(uint16_t portIPv6, uint16_t portIPv4);
+    bool tryBindIPv4(uint16_t port);
+
+    [[nodiscard]]
+    bool tryBindIPv6(uint16_t port);
 
     // Send a message
     bool send(const UdcAddressMux& address, const uint8_t* data, uint32_t size) const;
@@ -71,8 +73,8 @@ public:
     bool isConnected() const;
 
 protected:
-    UdcSocket m_socketIPv4;
-    UdcSocket m_socketIPv6;
+    std::vector<UdcSocket> m_socketIPv4;
+    std::vector<UdcSocket> m_socketIPv6;
     std::unique_ptr<UdcPacketLogger> m_logger;
 };
 

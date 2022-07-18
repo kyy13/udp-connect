@@ -5,7 +5,6 @@
 #define UDC_WIN32_SOCKET_HELPER_H
 
 #include "udp_connect.h"
-#include "UdcTypes.h"
 
 #include <vector>
 #include <string>

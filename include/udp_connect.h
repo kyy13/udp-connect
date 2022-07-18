@@ -85,11 +85,10 @@ extern "C"
 
     // Creates a local server responsible for reading and acknowledging messages from remote clients
     // returns nullptr if it fails to connect
+    // A server must be bound to a port in order to send/receive connections (see udcTryBind...)
     UdcServer*      __cdecl udcCreateServer(
         UdcSignature           signature,    // A custom signature that recognizes packets as valid
                                              // other servers need to have the same value in order to send/receive.
-        uint16_t               portIPv6,     // The port the server listens on for IPv6 connections and messages
-        uint16_t               portIPv4,     // The port the server listens on for IPv4 connections and messages
         uint8_t*               buffer,       // The handle to a buffer that can be used for storing sent/received messages
                                              // the buffer must be at least udcGetMinimumBufferSize() size in bytes
         uint32_t               size,         // The size of buffer (in bytes)
@@ -98,6 +97,20 @@ extern "C"
     // Stops and deletes a server
     void            __cdecl udcDeleteServer(
         UdcServer*             server);      // Delete a server and frees any memory associated with the server
+
+    // Attempts to bind an IPv4 port to the server
+    // On success, returns true and enables IPv4 send and receive on the server
+    // It is possible to bind multiple (also mixed IPv4/IPv6) ports for use on the same sever
+    bool            __cdecl udcTryBindIPv4(
+        UdcServer*             server,       // The server to bind the port on
+        uint16_t               port);        // The port to bind
+
+    // Attempts to bind an IPv6 port to the server
+    // On success, returns true and enables IPv6 send and receive on the server
+    // It is possible to bind multiple (also mixed IPv4/IPv6) ports for use on the same sever
+    bool            __cdecl udcTryBindIPv6(
+        UdcServer*             server,       // The server to bind the port on
+        uint16_t               port);        // The port to bind
 
     // Try to parse a node and service null-terminated string into an IPv4 address and port number
     // returns true on success

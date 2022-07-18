@@ -60,10 +60,10 @@ public class UdcServer : IDisposable
         public UInt16[] segments;
     };
 
-    public UdcServer(Signature signature, UInt16 portIPv6, UInt16 portIPv4, uint bufferSize = 2048)
+    public UdcServer(Signature signature, uint bufferSize = 2048)
     {
         m_buffer = new byte[bufferSize + udcGetMinimumBufferSize()];
-        m_server = udcCreateServer(signature, portIPv6, portIPv4, m_buffer, (UInt32)m_buffer.Length, IntPtr.Zero);
+        m_server = udcCreateServer(signature, m_buffer, (UInt32)m_buffer.Length, IntPtr.Zero);
 
         if (m_server == IntPtr.Zero)
         {
@@ -71,10 +71,14 @@ public class UdcServer : IDisposable
         }
     }
 
-    public void Dispose()
+    public bool TryBindIPv4(UInt16 port)
     {
-        TryDispose();
-        GC.SuppressFinalize(this);
+        return udcTryBindIPv4(m_server, port);
+    }
+
+    public bool TryBindIPv6(UInt16 port)
+    {
+        return udcTryBindIPv6(m_server, port);
     }
 
     public static bool TryParseAddressIPv4(string nodeName, string serviceName, out AddressIPv4 address, out UInt16 port)
@@ -182,6 +186,12 @@ public class UdcServer : IDisposable
         }
     }
 
+    public void Dispose()
+    {
+        TryDispose();
+        GC.SuppressFinalize(this);
+    }
+
     ~UdcServer()
     {
         TryDispose();
@@ -221,7 +231,13 @@ public class UdcServer : IDisposable
     protected static extern UInt32 udcGetMinimumBufferSize();
 
     [DllImport("libudpconnect", EntryPoint = "udcCreateServer", CallingConvention = CallingConvention.Cdecl)]
-    protected static extern IntPtr udcCreateServer(Signature signature, UInt16 portIPv6, UInt16 portIPv4, byte[] buffer, UInt32 size, string logFileName);
+    protected static extern IntPtr udcCreateServer(Signature signature, byte[] buffer, UInt32 size, string logFileName);
+
+    [DllImport("libudpconnect", EntryPoint = "udcTryBindIPv4", CallingConvention = CallingConvention.Cdecl)]
+    protected static extern bool udcTryBindIPv4(IntPtr server, UInt16 port);
+
+    [DllImport("libudpconnect", EntryPoint = "udcTryBindIPv6", CallingConvention = CallingConvention.Cdecl)]
+    protected static extern bool udcTryBindIPv6(IntPtr server, UInt16 port);
 
     [DllImport("libudpconnect", EntryPoint = "udcDeleteServer", CallingConvention = CallingConvention.Cdecl)]
     protected static extern void udcDeleteServer(IntPtr server);

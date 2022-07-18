@@ -5,7 +5,6 @@
 #define UDC_SOCKET_H
 
 #include "udp_connect.h"
-#include "UdcTypes.h"
 
 #include <cstdint>
 #include <vector>
@@ -23,14 +22,20 @@ public:
     // Constructor
     UdcSocket();
 
+    // Destructor
+    ~UdcSocket();
+
     // Copy Consturctor
     UdcSocket(const UdcSocket&) = delete;
 
     // Copy-Assignment Operator
     UdcSocket& operator=(const UdcSocket&) = delete;
 
-    // Destructor
-    ~UdcSocket();
+    // Move Constructor
+    UdcSocket(UdcSocket&& o) noexcept;
+
+    // Move Assignment Operator
+    UdcSocket& operator=(UdcSocket&& o) noexcept;
 
     // Returns true if the socket is connected/bound
     [[nodiscard]]

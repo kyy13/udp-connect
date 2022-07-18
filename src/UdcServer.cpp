@@ -7,19 +7,13 @@
 #include <stdexcept>
 #include <cassert>
 
-UdcServerImpl::UdcServerImpl(UdcSignature signature, uint16_t portIPv4, uint16_t portIPv6, uint8_t* buffer, uint32_t bufferSize)
+UdcServerImpl::UdcServerImpl(UdcSignature signature, uint8_t* buffer, uint32_t bufferSize)
     : m_idCounter(0)
     , m_packetSignature(signature)
     , m_eventBuffer({})
     , m_messageBuffer(buffer)
     , m_messageBufferSize(bufferSize)
 {
-    // Try to bind socket
-    if (!m_socket.bind(portIPv6, portIPv4))
-    {
-        throw std::runtime_error("could not bind to port");
-    }
-
     // Write message signature into buffer
     // this is needed by send/recv in every message
     // and only needs to be rewritten if receiving message has
@@ -27,7 +21,7 @@ UdcServerImpl::UdcServerImpl(UdcSignature signature, uint16_t portIPv4, uint16_t
     serial::msgHeader::serializeMsgSignature(m_messageBuffer, m_packetSignature);
 }
 
-UdcServerImpl::UdcServerImpl(UdcSignature signature, uint16_t portIPv4, uint16_t portIPv6, uint8_t* buffer, uint32_t bufferSize, const std::string& logFileName)
+UdcServerImpl::UdcServerImpl(UdcSignature signature, uint8_t* buffer, uint32_t bufferSize, const std::string& logFileName)
     : m_socket(logFileName)
     , m_idCounter(0)
     , m_packetSignature(signature)
@@ -35,16 +29,21 @@ UdcServerImpl::UdcServerImpl(UdcSignature signature, uint16_t portIPv4, uint16_t
     , m_messageBuffer(buffer)
     , m_messageBufferSize(bufferSize)
 {
-    if (!m_socket.bind(portIPv6, portIPv4))
-    {
-        throw std::runtime_error("could not bind to port");
-    }
-
     // Write message signature into buffer
     // this is needed by send/recv in every message
     // and only needs to be rewritten if receiving message has
     // incorrect signature
     serial::msgHeader::serializeMsgSignature(m_messageBuffer, m_packetSignature);
+}
+
+bool UdcServerImpl::tryBindIPv4(uint16_t port)
+{
+    return m_socket.tryBindIPv4(port);
+}
+
+bool UdcServerImpl::tryBindIPv6(uint16_t port)
+{
+    return m_socket.tryBindIPv6(port);
 }
 
 bool UdcServerImpl::getEndPointStatus(UdcEndPointId id, std::chrono::milliseconds& ping)

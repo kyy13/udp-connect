@@ -15,24 +15,30 @@ UdcSocketMux::UdcSocketMux(const std::string& logFileName)
     {}
 }
 
-bool UdcSocketMux::bind(uint16_t portIPv6, uint16_t portIPv4)
+bool UdcSocketMux::tryBindIPv4(uint16_t port)
 {
-    bool result = false;
+    UdcSocket socket;
 
-    m_socketIPv6.disconnect();
-    m_socketIPv4.disconnect();
-
-    if (m_socketIPv6.localBindIPv6(portIPv6, false))
+    if (socket.localBindIPv4(port))
     {
-        result = true;
+        m_socketIPv4.push_back(std::move(socket));
+        return true;
     }
 
-    if (m_socketIPv4.localBindIPv4(portIPv4))
+    return false;
+}
+
+bool UdcSocketMux::tryBindIPv6(uint16_t port)
+{
+    UdcSocket socket;
+
+    if (socket.localBindIPv6(port))
     {
-        result = true;
+        m_socketIPv6.push_back(std::move(socket));
+        return true;
     }
 
-    return result;
+    return false;
 }
 
 bool UdcSocketMux::send(const UdcAddressMux& address, const uint8_t* data, uint32_t size) const
@@ -48,12 +54,12 @@ bool UdcSocketMux::send(const UdcAddressMux& address, const uint8_t* data, uint3
 bool UdcSocketMux::send(const UdcAddressIPv4& address, uint16_t port, const uint8_t* data, uint32_t size) const
 {
     // Not connected
-    if (!m_socketIPv4.isConnected())
+    if (m_socketIPv4.empty())
     {
         return false;
     }
 
-    bool result = m_socketIPv4.sendIPv4(address, port, data, size);
+    bool result = m_socketIPv4.front().sendIPv4(address, port, data, size);
 
     // Log if necessary
     if (m_logger && result)
@@ -67,12 +73,12 @@ bool UdcSocketMux::send(const UdcAddressIPv4& address, uint16_t port, const uint
 bool UdcSocketMux::send(const UdcAddressIPv6& address, uint16_t port, const uint8_t* data, uint32_t size) const
 {
     // Not connected
-    if (!m_socketIPv6.isConnected())
+    if (m_socketIPv6.empty())
     {
         return false;
     }
 
-    bool result = m_socketIPv6.sendIPv6(address, port, data, size);
+    bool result = m_socketIPv6.front().sendIPv6(address, port, data, size);
 
     // Log if necessary
     if (m_logger && result)
@@ -102,49 +108,47 @@ bool UdcSocketMux::receive(UdcAddressMux& address, uint8_t* buffer, uint32_t& si
 
 bool UdcSocketMux::receive(UdcAddressIPv4& address, uint16_t& port, uint8_t* buffer, uint32_t& size)
 {
-    // Not connected
-    if (!m_socketIPv4.isConnected())
+    for (auto& socket : m_socketIPv4)
     {
-        return false;
+        if (socket.receiveIPv4(address, port, buffer, size) == 1)
+        {
+            if (m_logger)
+            {
+                m_logger->logReceived(address, port, buffer, size);
+            }
+
+            return true;
+        }
     }
 
-    bool result = m_socketIPv4.receiveIPv4(address, port, buffer, size) == 1;
-
-    // Log if necessary
-    if (m_logger && result)
-    {
-        m_logger->logReceived(address, port, buffer, size);
-    }
-
-    return result;
+    return false;
 }
 
 bool UdcSocketMux::receive(UdcAddressIPv6& address, uint16_t& port, uint8_t* buffer, uint32_t& size)
 {
-    // Not connected
-    if (!m_socketIPv6.isConnected())
+    for (auto& socket : m_socketIPv6)
     {
-        return false;
+        if (socket.receiveIPv6(address, port, buffer, size) == 1)
+        {
+            if (m_logger)
+            {
+                m_logger->logReceived(address, port, buffer, size);
+            }
+
+            return true;
+        }
     }
 
-    bool result = m_socketIPv6.receiveIPv6(address, port, buffer, size) == 1;
-
-    // Log if necessary
-    if (m_logger && result)
-    {
-        m_logger->logReceived(address, port, buffer, size);
-    }
-
-    return result;
+    return false;
 }
 
 void UdcSocketMux::disconnect()
 {
-    m_socketIPv4.disconnect();
-    m_socketIPv6.disconnect();
+    m_socketIPv4.clear();
+    m_socketIPv6.clear();
 }
 
 bool UdcSocketMux::isConnected() const
 {
-    return m_socketIPv4.isConnected() || m_socketIPv6.isConnected();
+    return !(m_socketIPv4.empty() && m_socketIPv6.empty());
 }

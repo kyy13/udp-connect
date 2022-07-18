@@ -20,9 +20,15 @@ class UdcServerImpl
 {
 public:
 
-    UdcServerImpl(UdcSignature signature, uint16_t portIPv4, uint16_t portIPv6, uint8_t* buffer, uint32_t bufferSize);
+    UdcServerImpl(UdcSignature signature, uint8_t* buffer, uint32_t bufferSize);
 
-    UdcServerImpl(UdcSignature signature, uint16_t portIPv4, uint16_t portIPv6, uint8_t* buffer, uint32_t bufferSize, const std::string& logFileName);
+    UdcServerImpl(UdcSignature signature, uint8_t* buffer, uint32_t bufferSize, const std::string& logFileName);
+
+    [[nodiscard]]
+    bool tryBindIPv4(uint16_t port);
+
+    [[nodiscard]]
+    bool tryBindIPv6(uint16_t port);
 
     [[nodiscard]]
     UdcEndPointId createUniqueId();

@@ -5,7 +5,6 @@
 #define UDC_CLIENT_H
 
 #include "udp_connect.h"
-#include "UdcTypes.h"
 #include "UdcSocketMux.h"
 #include "UdcMessage.h"
 

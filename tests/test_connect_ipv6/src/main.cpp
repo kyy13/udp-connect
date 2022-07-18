@@ -14,7 +14,7 @@ int main()
     std::vector<uint8_t> buffer(2048);
 
     // Create nodeA
-    UdcServer* nodeA = udcCreateServer(sig, 1234, 2345, buffer.data(), buffer.size(), "test_connect_ipv6_logA.txt");
+    UdcServer* nodeA = udcCreateServer(sig, buffer.data(), buffer.size(), "test_connect_ipv6_logA.txt");
 
     if (nodeA == nullptr)
     {
@@ -22,13 +22,25 @@ int main()
         return -1;
     }
 
+    if (!udcTryBindIPv6(nodeA, 1234))
+    {
+        std::cout << "failed to bind Node A\n";
+        return -1;
+    }
+
     // Create nodeB
-    UdcServer* nodeB = udcCreateServer(sig, 1235, 2346, buffer.data(), buffer.size(), "test_connect_ipv6_logB.txt");
+    UdcServer* nodeB = udcCreateServer(sig, buffer.data(), buffer.size(), "test_connect_ipv6_logB.txt");
 
     if (nodeB == nullptr)
     {
         std::cout << "failed to create Node B\n";
         udcDeleteServer(nodeA);
+        return -1;
+    }
+
+    if (!udcTryBindIPv6(nodeB, 1235))
+    {
+        std::cout << "failed to bind Node B\n";
         return -1;
     }
 

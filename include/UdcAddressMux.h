@@ -5,7 +5,13 @@
 #define UDC_ADDRESS_MUX_H
 
 #include "udp_connect.h"
-#include "UdcTypes.h"
+
+// IP version
+enum UdcAddressFamily : uint8_t
+{
+    UDC_IPV4,
+    UDC_IPV6,
+};
 
 struct UdcAddressMux
 {
