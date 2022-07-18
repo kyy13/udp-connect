@@ -57,7 +57,7 @@ public class UdcServer : IDisposable
     public struct AddressIPv6
     {
         [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 8)]
-        UInt16[] segments;
+        public UInt16[] segments;
     };
 
     public UdcServer(Signature signature, UInt16 portIPv6, UInt16 portIPv4, uint bufferSize = 2048)
