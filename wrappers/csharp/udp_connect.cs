@@ -63,7 +63,7 @@ public class UdcServer : IDisposable
     public UdcServer(Signature signature, uint bufferSize = 2048)
     {
         m_buffer = new byte[bufferSize + udcGetMinimumBufferSize()];
-        m_server = udcCreateServer(signature, m_buffer, (UInt32)m_buffer.Length, IntPtr.Zero);
+        m_server = udcCreateServer(signature, m_buffer, (UInt32)m_buffer.Length, null);
 
         if (m_server == IntPtr.Zero)
         {
