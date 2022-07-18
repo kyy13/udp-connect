@@ -22,21 +22,6 @@ public:
     // Constructor
     UdcSocket();
 
-    // Destructor
-    ~UdcSocket();
-
-    // Copy Consturctor
-    UdcSocket(const UdcSocket&) = delete;
-
-    // Copy-Assignment Operator
-    UdcSocket& operator=(const UdcSocket&) = delete;
-
-    // Move Constructor
-    UdcSocket(UdcSocket&& o) noexcept;
-
-    // Move Assignment Operator
-    UdcSocket& operator=(UdcSocket&& o) noexcept;
-
     // Returns true if the socket is connected/bound
     [[nodiscard]]
     bool isConnected() const;

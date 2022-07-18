@@ -5,44 +5,17 @@
 #include "UdcSocketHelper.h"
 
 #include <ws2tcpip.h>
-#include <stdexcept>
+#include <memory>
+
+std::unique_ptr<WinSock::WinSockReference> winSockReference;
 
 UdcSocket::UdcSocket()
     : m_socket(INVALID_SOCKET)
 {
-    if (!WinSock::startWSA())
+    if (winSockReference == nullptr)
     {
-        throw std::runtime_error("Could not start Winsock DLL!");
+        winSockReference = std::make_unique<WinSock::WinSockReference>();
     }
-}
-
-UdcSocket::~UdcSocket()
-{
-    WinSock::deleteSocket(m_socket);
-    WinSock::stopWSA();
-}
-
-UdcSocket::UdcSocket(UdcSocket&& o) noexcept
-    : m_socket(o.m_socket)
-{
-    if (!WinSock::startWSA())
-    {
-        throw std::runtime_error("Could not start Winsock DLL!");
-    }
-
-    o.m_socket = INVALID_SOCKET;
-}
-
-UdcSocket& UdcSocket::operator=(UdcSocket&& o) noexcept
-{
-    if (this != &o)
-    {
-        WinSock::deleteSocket(m_socket);
-        m_socket = o.m_socket;
-        o.m_socket = INVALID_SOCKET;
-    }
-
-    return *this;
 }
 
 bool UdcSocket::isConnected() const
@@ -56,9 +29,16 @@ bool UdcSocket::stringToIPv6(
     UdcAddressIPv6& dstAddress,
     uint16_t& dstPort)
 {
-    if (!WinSock::startWSA())
+    if (winSockReference == nullptr)
     {
-        return false;
+        try
+        {
+            winSockReference = std::make_unique<WinSock::WinSockReference>();
+        }
+        catch(...)
+        {
+            return false;
+        }
     }
 
     // Setup address hints
@@ -75,7 +55,6 @@ bool UdcSocket::stringToIPv6(
     // Get address info
     if (getaddrinfo(nodeName.c_str(), serviceName.c_str(), &hints, &addressList) != 0)
     {
-        WinSock::stopWSA();
         return false;
     }
 
@@ -94,12 +73,10 @@ bool UdcSocket::stringToIPv6(
             dstPort = ntohs(sa->sin6_port);
             WinSock::convertInaddrToIPv6(sa->sin6_addr, dstAddress);
 
-            WinSock::stopWSA();
             return true;
         }
     }
 
-    WinSock::stopWSA();
     return false;
 }
 
@@ -109,9 +86,16 @@ bool UdcSocket::stringToIPv4(
     UdcAddressIPv4& dstAddress,
     uint16_t& dstPort)
 {
-    if (!WinSock::startWSA())
+    if (winSockReference == nullptr)
     {
-        return false;
+        try
+        {
+            winSockReference = std::make_unique<WinSock::WinSockReference>();
+        }
+        catch(...)
+        {
+            return false;
+        }
     }
 
     // Setup address hints
@@ -129,7 +113,6 @@ bool UdcSocket::stringToIPv4(
     int result = getaddrinfo(nodeName.c_str(), serviceName.c_str(), &hints, &addressList);
     if (result != 0)
     {
-        WinSock::stopWSA();
         return false;
     }
 
@@ -148,12 +131,10 @@ bool UdcSocket::stringToIPv4(
             dstPort = ntohs(sa->sin_port);
             WinSock::convertInaddrToIPv4(sa->sin_addr, dstAddress);
 
-            WinSock::stopWSA();
             return true;
         }
     }
 
-    WinSock::stopWSA();
     return false;
 }
 

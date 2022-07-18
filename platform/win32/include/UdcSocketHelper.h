@@ -13,14 +13,16 @@
 
 namespace WinSock
 {
-    // Starts winsock API
-    // reference counted, so it will only be started when startWSA() call count = 0
-    [[nodiscard]]
-    bool startWSA();
+    // Create and deletes the WinSock library
+    // Starts/Stops WSA
+    struct WinSockReference
+    {
+        WinSockReference();
+        ~WinSockReference();
 
-    // Stop winsock API
-    // reference counted, so it will be stopped when startWSA() call count == stopWSA() call count
-    void stopWSA();
+        WinSockReference(const WinSockReference&) = delete;
+        WinSockReference& operator=(const WinSockReference&) = delete;
+    };
 
     // Creates a socket
     // returns INVALID_SOCKET on failure

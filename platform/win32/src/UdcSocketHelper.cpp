@@ -4,16 +4,20 @@
 #include "UdcSocketHelper.h"
 
 #include <cassert>
+#include <stdexcept>
 
 namespace WinSock
 {
-    bool startWSA()
+    WinSockReference::WinSockReference()
     {
         WSAData wsaData;
-        return WSAStartup(MAKEWORD(2, 2), &wsaData) == NO_ERROR;
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR)
+        {
+            throw std::runtime_error("Failed to start WSA!");
+        }
     }
 
-    void stopWSA()
+    WinSockReference::~WinSockReference()
     {
         WSACleanup();
     }
